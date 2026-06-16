@@ -11,8 +11,10 @@
 - [check_codebase.sh](../check_codebase.sh): local codebase verification gate.
 - [src/](../src/): browser game source.
 - [tests/](../tests/): Python repo hygiene tests, Node game tests, and Playwright browser tests.
-- [data/science_career_paths/](../data/science_career_paths/): source drafts for scientist-path
-  content.
+- [data/science_career_paths/](../data/science_career_paths/): scientist source-reference material
+  for signatures and source notes.
+- [.github/workflows/deploy-pages.yml](../.github/workflows/deploy-pages.yml): GitHub Actions
+  workflow that builds and publishes the game to GitHub Pages on push to main.
 - `docs/`: project documentation and shared repo rules.
 
 ## Key subtrees
@@ -57,7 +59,7 @@ tests/
 ## Where to add new work
 
 - Add game logic under [src/](../src/) with focused feature-owned modules.
-- Add launch-path source material under [data/science_career_paths/](../data/science_career_paths/).
+- Add scientist source-reference material under [data/science_career_paths/](../data/science_career_paths/).
 - Add fast deterministic tests under [tests](../tests/).
 - Add browser interaction tests under [tests/playwright/](../tests/playwright/).
 - Add user-facing docs under `docs/` with ALL CAPS filenames.

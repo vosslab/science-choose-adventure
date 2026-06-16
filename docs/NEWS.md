@@ -5,7 +5,8 @@ the detailed changelog.
 
 ## Current status
 
-- The first playable static TypeScript game build is in development.
+- The first playable static TypeScript game build shipped. The resemblance redesign pilot is now in
+  progress, replacing the prologue path machine with a blind run and end-only scientist reveal.
 - Detailed implementation history lives in [CHANGELOG.md](CHANGELOG.md).
 
 ## Known gaps

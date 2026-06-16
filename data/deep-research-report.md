@@ -2,13 +2,13 @@
 
 ## Executive summary
 
-For a first set of improved Markdown path files, **Katalin Karikó** is the strongest first-play sample: her story maps cleanly onto the four-stat loop, the stakes are legible to students, and the core tension—keep chasing a risky molecule or switch to safer work—naturally generates gray-area choices. **Rosalind Franklin** is the strongest second sample for credit and evidence; **Alexander Fleming** is the easiest for accidental discovery and downstream consequences; **Marie Curie** gives the clearest “discovery has a cost” arc; **Jennifer Doudna** adds modern ethics and scientific power. Across the five, the best narrative structure is a short fixed mini-arc with lightly shuffled cards: early struggle, risky question, setback, breakthrough pressure, recognition pressure, legacy. That gives enough plot shape without the testing burden of branching chapters. citeturn1search0turn0search4turn6search9turn0search2turn0search3
+For a first set of improved Markdown path files, **Katalin Kariko** is the strongest first-play sample: her story maps cleanly onto the four-stat loop, the stakes are legible to students, and the core tension-keep chasing a risky molecule or switch to safer work-naturally generates gray-area choices. **Rosalind Franklin** is the strongest second sample for credit and evidence; **Alexander Fleming** is the easiest for accidental discovery and downstream consequences; **Marie Curie** gives the clearest "discovery has a cost" arc; **Jennifer Doudna** adds modern ethics and scientific power. Across the five, the best narrative structure is a short fixed mini-arc with lightly shuffled cards: early struggle, risky question, setback, breakthrough pressure, recognition pressure, legacy. That gives enough plot shape without the testing burden of branching chapters.
 
-The biggest factual risk is **oversimplifying credit disputes or institutional treatment**. Franklin’s contribution to DNA structure is secure, but motives, permission, and “who stole what” language remain historically sensitive; similarly, Karikó’s repeated rejection is well attested in interviews and profiles, but some specifics of promotion/demotion are not easy to anchor in a primary institutional record. Curie’s illness should not be treated as a punchline, and Fleming’s “lucky mold” story should not erase later purification work by Florey and Chain. Doudna’s path should foreground ethics and public responsibility without turning into a patent or scandal simulator. citeturn0search4turn0search0turn1search4turn5search1turn5search2turn6search1turn4search7
+The biggest factual risk is **oversimplifying credit disputes or institutional treatment**. Franklin's contribution to DNA structure is secure, but motives, permission, and "who stole what" language remain historically sensitive; similarly, Kariko's repeated rejection is well attested in interviews and profiles, but some specifics of promotion/demotion are not easy to anchor in a primary institutional record. Curie's illness should not be treated as a punchline, and Fleming's "lucky mold" story should not erase later purification work by Florey and Chain. Doudna's path should foreground ethics and public responsibility without turning into a patent or scandal simulator.
 
 ## Cross-scientist comparison
 
-This comparison is a design synthesis from the source set below: Nobel records, institutional biographies, original papers, and Britannica. citeturn1search0turn0search4turn6search9turn0search2turn0search3
+This comparison is a design synthesis from the source set below: Nobel records, institutional biographies, original papers, and Britannica.
 
 | Scientist | Ethics | Credit | Resource scarcity | Accidental discovery | Persistence | Best gameplay tension |
 |---|---|---:|---:|---:|---:|---|
@@ -16,13 +16,13 @@ This comparison is a design synthesis from the source set below: Nobel records, 
 | Rosalind Franklin | Medium | Very high | Medium | Low | High | evidence vs recognition |
 | Marie Curie | Medium | High | Very high | Low | Very high | discovery vs bodily cost |
 | Alexander Fleming | Medium | Medium | Medium | Very high | Medium | accident vs follow-through |
-| Katalin Karikó | Medium | Medium | Very high | Low | Very high | risky idea vs career survival |
+| Katalin Kariko | Medium | Medium | Very high | Low | Very high | risky idea vs career survival |
 
-**Suggested first-play sample: Katalin Karikó.** Her path is unusually clear for high-school players: repeated grant rejection, collaborator search, immune-response problem, delayed recognition, and a strong legacy payoff. The player can feel every tradeoff in Credibility, Curiosity, Cash, and Capacity without needing much historical background. citeturn5search2turn5search6turn4search1turn0search3
+**Suggested first-play sample: Katalin Kariko.** Her path is unusually clear for high-school players: repeated grant rejection, collaborator search, immune-response problem, delayed recognition, and a strong legacy payoff. The player can feel every tradeoff in Credibility, Curiosity, Cash, and Capacity without needing much historical background.
 
 ## Jennifer Doudna
 
-Doudna won the 2020 Nobel Prize in Chemistry for genome editing work with Emmanuelle Charpentier, and the core scientific turning point is well anchored in the 2012 *Science* paper showing programmable Cas9 cleavage. Her earlier career in RNA structure and her later public role in CRISPR ethics make her path especially good for “tool becomes bigger than the lab” storytelling. citeturn1search0turn1search5turn1search1turn4search0
+Doudna won the 2020 Nobel Prize in Chemistry for genome editing work with Emmanuelle Charpentier, and the core scientific turning point is well anchored in the 2012 *Science* paper showing programmable Cas9 cleavage. Her earlier career in RNA structure and her later public role in CRISPR ethics make her path especially good for "tool becomes bigger than the lab" storytelling. citeturn1search0turn1search5turn1search1turn4search0
 
 ```mermaid
 timeline
@@ -73,9 +73,9 @@ Early RNA work; strange bacterial defense clue; collaboration risk; lab proof of
 
 ## Source notes
 - The programmable Cas9 turning point is primary-source solid.
-- Doudna’s public ethics role is well supported by IGI and Nobel materials.
+- Doudna's public ethics role is well supported by IGI and Nobel materials.
 - Patent details are real but not central here; keep cards focused on science and responsibility.
-- Avoid saying Doudna “invented gene editing”; say she co-developed a transformative CRISPR method.
+- Avoid saying Doudna "invented gene editing"; say she co-developed a transformative CRISPR method.
 
 ## Tone guardrail
 Respect the scale of CRISPR without treating power as triumph. The joke target is hype and governance confusion, not patients or disability.
@@ -83,7 +83,7 @@ Respect the scale of CRISPR without treating power as triumph. The joke target i
 
 ## Rosalind Franklin
 
-Franklin’s King’s College work, Photograph 51, and the 1953 *Nature* paper with Raymond Gosling are secure anchors. Her later virus work at Birkbeck is equally important and helps avoid reducing her path to a single grievance narrative. The safest framing is “clear evidence in a difficult professional environment,” not “martyr genius.” citeturn0search4turn0search0turn2search2turn4search2
+Franklin's King's College work, Photograph 51, and the 1953 *Nature* paper with Raymond Gosling are secure anchors. Her later virus work at Birkbeck is equally important and helps avoid reducing her path to a single grievance narrative. The safest framing is "clear evidence in a difficult professional environment," not "martyr genius." citeturn0search4turn0search0turn2search2turn4search2
 
 ```mermaid
 timeline
@@ -133,9 +133,9 @@ Technical mastery; difficult lab politics; DNA diffraction and careful interpret
 - Capacity: too low, exhaustion beats the notebook; too high, overcontrol slows every human exchange.
 
 ## Source notes
-- Franklin’s DNA contribution is beyond dispute.
+- Franklin's DNA contribution is beyond dispute.
 - The exact permission/history around Photograph 51 is sensitive; avoid villain language unless a card cites a specific source.
-- [CLAIM NEEDS STRONGER PRIMARY SUPPORT] “Franklin would certainly have won a Nobel” is speculative.
+- [CLAIM NEEDS STRONGER PRIMARY SUPPORT] "Franklin would certainly have won a Nobel" is speculative.
 - Include her virus work so the path is not only about DNA.
 
 ## Tone guardrail
@@ -144,7 +144,7 @@ Treat unfairness seriously, but do not flatten Franklin into a symbol of victimh
 
 ## Marie Curie
 
-Curie’s biography is unusually strong for a plotted mini-arc: barriers to study in Warsaw, doctoral work on radioactivity, discovery of polonium and radium, Nobel recognition, and wartime radiology. Her path should teach that discovery, reputation, and bodily cost can rise together. citeturn6search9turn1search3turn3search2turn6search1
+Curie's biography is unusually strong for a plotted mini-arc: barriers to study in Warsaw, doctoral work on radioactivity, discovery of polonium and radium, Nobel recognition, and wartime radiology. Her path should teach that discovery, reputation, and bodily cost can rise together. citeturn6search9turn1search3turn3search2turn6search1
 
 ```mermaid
 timeline
@@ -167,7 +167,7 @@ timeline
 - https://www.nobelprize.org/stories/women-who-changed-science/marie-curie/
 
 ## Arc beats
-Study despite barriers; thesis on uranium rays; discovery and isolation grind; grief and continuation after Pierre’s death; dual Nobel-era pressure; wartime radiology and institute legacy.
+Study despite barriers; thesis on uranium rays; discovery and isolation grind; grief and continuation after Pierre's death; dual Nobel-era pressure; wartime radiology and institute legacy.
 
 ## Motifs
 - the glow is beautiful and dangerous
@@ -180,9 +180,9 @@ Study despite barriers; thesis on uranium rays; discovery and isolation grind; g
 4. A new element needs a name. L: Signal Poland `[Credibility/Cash SMALL]` `Name it boldly` | R: Keep the paper neutral `[Credibility/Capacity SMALL]` `Stay neutral`
 5. Fame arrives before safety rules do. L: Accept public attention `[Cash/Credibility MED]` `Face public` | R: Hide in the lab `[Capacity/Curiosity SMALL]` `Stay in lab`
 6. The work is physically punishing. L: Slow down `[Capacity/Credibility SMALL]` `Slow down` | R: Push for isolation `[Curiosity/Capacity MED]` `Push on`
-7. After Pierre’s death, the chair opens. L: Take it and continue `[Credibility/Capacity MED]` `Continue` | R: Step back from the spotlight `[Capacity/Cash SMALL]` `Step back`
+7. After Pierre's death, the chair opens. L: Take it and continue `[Credibility/Capacity MED]` `Continue` | R: Step back from the spotlight `[Capacity/Cash SMALL]` `Step back`
 8. A scandal distracts from the science. L: Defend your private life `[Capacity/Credibility MED]` `Defend self` | R: Let the work answer `[Credibility/Cash SMALL]` `Let work stand`
-9. War changes the problem. L: Build mobile X-rays `[Curiosity/Capacity MED]` `Build mobile units` | R: Protect the lab’s pure research `[Credibility/Cash SMALL]` `Protect lab`
+9. War changes the problem. L: Build mobile X-rays `[Curiosity/Capacity MED]` `Build mobile units` | R: Protect the lab's pure research `[Credibility/Cash SMALL]` `Protect lab`
 10. Students need training. L: Grow the institute `[Legacy/Credibility SMALL]` `Train others` | R: Keep the bench to yourself `[Curiosity/Cash SMALL]` `Keep bench`
 11. Radium attracts money and myth. L: Correct exaggeration `[Credibility/Cash SMALL]` `Correct myth` | R: Use fascination to fund work `[Cash/Credibility MED]` `Use fascination`
 12. Recognition keeps climbing. L: Guard scientific standards `[Credibility/Capacity SMALL]` `Guard standards` | R: Become a national symbol `[Cash/Capacity MED]` `Carry symbol`
@@ -194,7 +194,7 @@ Study despite barriers; thesis on uranium rays; discovery and isolation grind; g
 - Capacity: too low, strain and exposure end the run; too high, caution keeps the discovery unfinished.
 
 ## Source notes
-- Curie’s Nobel milestones and wartime X-ray work are secure.
+- Curie's Nobel milestones and wartime X-ray work are secure.
 - Use respectful wording around illness and radiation exposure.
 - [CLAIM NEEDS STRONGER PRIMARY SUPPORT] Direct single-cause statements about her death should be avoided; exposure came from multiple sources over years.
 - Keep jokes aimed at institutions and unsafe conditions, not at suffering.
@@ -205,7 +205,7 @@ Awe and danger must coexist. Never turn radiation sickness into a punchline.
 
 ## Alexander Fleming
 
-Fleming’s path is best when it starts with messy bacteriology, not instant legend. The 1929 paper and his Nobel lecture support the core beats: an unexpected mold effect, slow uptake because purification was hard, later medical success with Florey and Chain, and an early warning about resistance. citeturn2search11turn0search2turn4search7turn6search7
+Fleming's path is best when it starts with messy bacteriology, not instant legend. The 1929 paper and his Nobel lecture support the core beats: an unexpected mold effect, slow uptake because purification was hard, later medical success with Florey and Chain, and an early warning about resistance. citeturn2search11turn0search2turn4search7turn6search7
 
 ```mermaid
 timeline
@@ -257,20 +257,20 @@ Routine bacteriology; contaminated plate; publish the odd result; difficulty mak
 ## Source notes
 - The 1929 paper is the anchor for the accidental observation.
 - Keep Florey and Chain visible in recognition cards.
-- Fleming’s resistance warning is primary-source solid from the Nobel lecture.
-- Avoid “Fleming alone created penicillin medicine.”
+- Fleming's resistance warning is primary-source solid from the Nobel lecture.
+- Avoid "Fleming alone created penicillin medicine."
 
 ## Tone guardrail
 Play the irony of messy labs and miracle headlines, not patient suffering.
 ```
 
-## Katalin Karikó
+## Katalin Kariko
 
-Karikó’s Penn and Nobel materials support the key arc: long commitment to mRNA, collaboration with Drew Weissman, the 2005 modified-nucleoside breakthrough, and the later centrality of that work to effective mRNA COVID-19 vaccines. This is the clearest path for “years of rejection before one yes.” citeturn5search2turn5search6turn4search1turn0search3turn5search1
+Kariko's Penn and Nobel materials support the key arc: long commitment to mRNA, collaboration with Drew Weissman, the 2005 modified-nucleoside breakthrough, and the later centrality of that work to effective mRNA COVID-19 vaccines. This is the clearest path for "years of rejection before one yes." citeturn5search2turn5search6turn4search1turn0search3turn5search1
 
 ```mermaid
 timeline
-  title Katalin Karikó arc
+  title Katalin Kariko arc
   Hungary to US research path : early struggle
   mRNA as therapy : risky question
   Funding rejection and low support : setback
@@ -319,7 +319,7 @@ Immigration and RNA focus; mRNA looks unfundable; collaborator match with Weissm
 - The 2005 modified-nucleoside paper is the key primary anchor.
 - Penn and Nobel sources support the long-term RNA focus and Weissman collaboration.
 - [CLAIM NEEDS STRONGER PRIMARY SUPPORT] Specific promotion/demotion stories are widely repeated, but I did not locate a primary institutional record in this pass.
-- Use “repeated rejection and low support,” which is well supported, instead of unverifiable HR detail.
+- Use "repeated rejection and low support," which is well supported, instead of unverifiable HR detail.
 
 ## Tone guardrail
 Make the system, not the scientist, the object of satire. Persistence should feel costly, not magically rewarded.

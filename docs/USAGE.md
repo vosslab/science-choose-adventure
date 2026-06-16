@@ -5,18 +5,10 @@ Science Career Survival is a static TypeScript browser game. It builds to
 
 ## Play loop
 
-The game opens with a career-sorting prologue. Each prologue choice adds routing
-weight toward one of the five launch paths:
-
-- Jennifer Doudna
-- Rosalind Franklin
-- Marie Curie
-- Alexander Fleming
-- Katalin Kariko
-
-After routing, the player makes paired choices through that scientist's career
-arc. Choices move one or more stats. A run ends with a legacy outcome when the
-path completes, or with a collapse ending if a stat reaches either extreme.
+The game presents 12 anonymous career dilemmas drawn from a shared question
+pool. No scientist is named or hinted during the run. Your choices shift four
+career stats and build a profile that is compared against hand-authored
+signatures at the end.
 
 The interface accepts:
 
@@ -24,6 +16,9 @@ The interface accepts:
 - Touch, click, or button activation.
 - Left arrow or `A` for the left choice.
 - Right arrow or `D` for the right choice.
+
+Progress is shown as "Question k of 12" above the card. The four stat meters
+update after each answer.
 
 ## The four Cs
 
@@ -34,23 +29,42 @@ The four stats model career pressure rather than simple success points:
 - Cash: resources, patronage, institutions, and practical support.
 - Care: attention to people, consequences, safety, and personal cost.
 
-Low and high extremes are both dangerous. The goal is not to maximize every stat;
-the goal is to keep the career alive while making choices that fit the path.
-Each visible meter has 10 steps, so players get more feedback than a simple
-low/steady/high label without seeing the hidden 0-100 engine value.
+Stats start at 50 and clamp between 0 and 100. Each meter has 10 visible steps.
+There is no win or lose condition; no stat threshold ends the run.
 
-## Progression and reset
+## Soft texture wording
 
-The browser stores progress in `localStorage` under
-`science_career_survival:v1`. The save stores the active phase, route scores,
-stats, current path position, and unlocked extras.
+When a stat drifts into an extreme band (very low or very high) the game
+surfaces a short texture line below the meters, for example "the lab is fraying
+for lack of funds". This describes career strain without threatening the run.
+Texture lines appear during the run and feed the end reveal explanation.
 
-Core launch paths are always available through the prologue. Completing a run can
-unlock extras for that scientist, including source notes shown on ending screens.
+## End reveal
 
-Use the in-game restart control to clear the save slot and return to a fresh
-prologue. Browser developer tools can also clear site data or remove the
-`science_career_survival:v1` local storage entry.
+After the 12th answer the game reveals which scientist your career profile most
+resembles. The result screen shows:
+
+- "You most resemble {name}" as the headline.
+- A plain-language explanation of the match based on the two or three most
+  decisive stats (for example "curiosity and care stayed high while cash stayed
+  low").
+- Per-stat rationale for the matched scientist (why each C is high, medium, or
+  low for that scientist).
+- An ordered name ranking of all five scientists (no raw numeric distances).
+- Unlocked source notes for the matched scientist (the engine adds a
+  `"{scientistId}:source_notes"` token to `unlockedExtras` when the run transitions to the
+  result phase, which the UI reads to reveal that scientist's source notes).
+
+## Restart and reset
+
+Use the Restart button on the result screen to start a new run; the previous
+result is replaced in the saved state.
+
+Use the Reset button or clear `localStorage` in the browser developer tools to
+remove the save entirely and start fresh.
+
+Browser developer tools can also remove the `science_career_survival:v2` entry
+directly from the Application > Local Storage panel.
 
 ## Source material
 
@@ -60,28 +74,25 @@ working source-reference area for this repo; do not describe it as public
 documentation unless the project intentionally makes that claim elsewhere.
 
 Runtime game content is authored in TypeScript. The source drafts inform the
-cards, motifs, endings, and source notes, but the browser does not load Markdown
-draft files at runtime.
+cards and source notes, but the browser does not load Markdown draft files at
+runtime.
 
 ## Card authoring
 
-Each playable path should follow the existing content standard:
+The neutral core deck and scientist flavor pool follow this content standard:
 
-- Use historically inspired pressure, not strict biography.
+- Use historically inspired career pressure, not strict biography.
 - Keep satire aimed at institutions, incentives, committees, funding systems,
   media pressure, and career absurdity.
 - Make specific historical claims only when source notes cover them.
 - Keep every card to exactly two choices.
 - Give each choice at least one stat effect.
-- Cover the arc beats: entry, pressure, breakthrough, translation, and legacy.
-- Provide all ending types for each path.
-- Include 3 to 5 source notes per path.
-- Include at least 3 scientist-specific cards per path.
-- Keep the four Cs in tension instead of making one obviously correct route.
-
-Source notes should point to stable, reputable references and should support the
-specific historical claims used in the cards. A source note is an unlockable
-reader aid, not a citation for every fictionalized line.
+- Tag each card with `probes` (the stats the card is thematically about); every
+  probed stat must appear in at least one of the card's choice effects.
+- Core deck cards must not name or identify any scientist.
+- Flavor pool cards must not use instantly identifying terms such as mRNA,
+  radium, Photo 51, mold plate, or penicillin.
+- Include 3 to 5 source notes per scientist.
 
 ## Build and serve
 

@@ -30,7 +30,8 @@ function main(): void {
 
   const handlers = {
     choose(choiceIndex: 0 | 1): void {
-      if (state.phase === "ending") {
+      // On the result screen the run is complete; ignore stray choice events.
+      if (state.phase === "result") {
         return;
       }
       commit(choose(state, choiceIndex));

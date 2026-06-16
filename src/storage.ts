@@ -1,15 +1,23 @@
-import { saveSlotId, type SaveSlotId } from "./brands";
-import { SCIENTIST_IDS, STAT_IDS, type EndingType, type ScientistId } from "./config";
-import { createInitialState, type GameState, type RouteScores, type StatValues } from "./engine";
+import { SCIENTIST_IDS, STAT_IDS, type ScientistId } from "./config";
+import {
+  createInitialState,
+  type GameState,
+  type RankingEntry,
+  type StatValues,
+  type StrainLine,
+} from "./engine";
 
-const SAVE_VERSION = 1;
-const STORAGE_KEY = "science_career_survival:v1";
-const SAVE_SLOT = saveSlotId(STORAGE_KEY);
+const SAVE_VERSION = 2;
+const STORAGE_KEY = "science_career_survival:v2";
 
-type SaveFileV1 = {
-  readonly version: 1;
+type SaveFileV2 = {
+  readonly version: 2;
   readonly state: GameState;
 };
+
+//============================================
+// Type guard helpers
+//============================================
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   const isObjectRecord = typeof value === "object" && value !== null && !Array.isArray(value);
@@ -32,20 +40,9 @@ function isStatValues(value: unknown): value is StatValues {
   if (!isRecord(value)) {
     return false;
   }
+  // Every expected stat key must be present and numeric; extra keys are tolerated.
   for (const statId of STAT_IDS) {
     if (typeof value[statId] !== "number") {
-      return false;
-    }
-  }
-  return true;
-}
-
-function isRouteScores(value: unknown): value is RouteScores {
-  if (!isRecord(value)) {
-    return false;
-  }
-  for (const scientistId of SCIENTIST_IDS) {
-    if (typeof value[scientistId] !== "number") {
       return false;
     }
   }
@@ -60,106 +57,134 @@ function isStringArray(value: unknown): value is readonly string[] {
   return everyString;
 }
 
-function isChoiceIndex(value: unknown): value is 0 | 1 {
-  const validChoiceIndex = value === 0 || value === 1;
-  return validChoiceIndex;
-}
-
-function isEndingType(value: unknown): value is EndingType {
-  const validEnding =
-    value === "balanced_legacy" ||
-    value === "evidence_burnout" ||
-    value === "institutional_capture" ||
-    value === "reckless_velocity";
-  return validEnding;
-}
-
-function isCollapseReason(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-  const hasStat =
-    typeof value.stat === "string" && STAT_IDS.some((statId) => statId === value.stat);
-  const hasBand = value.band === "low" || value.band === "high";
-  const hasMessage = typeof value.message === "string";
-  const validCollapse = hasStat && hasBand && hasMessage;
-  return validCollapse;
-}
-
 function isLastEffectMagnitude(value: unknown): value is string | undefined {
+  // The field is optional: undefined means no choice has been made yet this run.
   const validMagnitude = value === undefined || typeof value === "string";
   return validMagnitude;
 }
+
+// Validate one entry in the result-phase resemblance ranking.
+function isRankingEntry(value: unknown): value is RankingEntry {
+  if (!isRecord(value)) {
+    return false;
+  }
+  const validEntry = isScientistId(value.scientistId) && typeof value.distance === "number";
+  return validEntry;
+}
+
+function isRankingArray(value: unknown): value is readonly RankingEntry[] {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+  const everyEntry = value.every((entry) => isRankingEntry(entry));
+  return everyEntry;
+}
+
+// Validate the strain array: each element must have a valid stat, band, and line string.
+// The strain array is always re-derived from stats on load, so this is a loose check
+// (accept any well-shaped array; we do not re-validate the text contents here).
+function isStrainArray(value: unknown): value is readonly StrainLine[] {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+  const everyElement = value.every((entry) => {
+    if (!isRecord(entry)) {
+      return false;
+    }
+    const hasStat = typeof entry.stat === "string" && STAT_IDS.some((id) => id === entry.stat);
+    const hasBand = entry.band === "low" || entry.band === "high";
+    const hasLine = typeof entry.line === "string";
+    return hasStat && hasBand && hasLine;
+  });
+  return everyElement;
+}
+
+//============================================
+// GameState type guard (new run/result union)
+//============================================
 
 function isGameState(value: unknown): value is GameState {
   if (!isRecord(value)) {
     return false;
   }
-  if (!isRouteScores(value.routeScores) || !isStatValues(value.stats)) {
+  // Fields common to both phases.
+  if (!isStatValues(value.stats)) {
     return false;
   }
-  if (!isStringArray(value.unlockedExtras)) {
+  if (typeof value.seed !== "number") {
+    return false;
+  }
+  if (typeof value.answeredCount !== "number") {
+    return false;
+  }
+  if (!isStringArray(value.askedIds)) {
     return false;
   }
   if (!isLastEffectMagnitude(value.lastEffectMagnitude)) {
     return false;
   }
-  if (value.phase === "prologue") {
-    return typeof value.prologueIndex === "number";
+  if (!isStrainArray(value.strain)) {
+    return false;
   }
-  if (value.phase === "path") {
-    return isScientistId(value.scientistId) && typeof value.cardIndex === "number";
+  if (!isStringArray(value.unlockedExtras)) {
+    return false;
   }
-  if (value.phase === "ending") {
-    const hasCollapse =
-      value.collapse === undefined || value.collapse === null || isCollapseReason(value.collapse);
-    return isScientistId(value.scientistId) && isEndingType(value.endingType) && hasCollapse;
+  // Phase-specific fields.
+  if (value.phase === "run") {
+    // The run phase has no additional required fields beyond the shared ones above.
+    return true;
   }
+  if (value.phase === "result") {
+    // The result phase adds a matched scientist, ranking, and plain-language explanation.
+    const hasScientist = isScientistId(value.scientistId);
+    const hasRanking = isRankingArray(value.ranking);
+    const hasExplanation = typeof value.explanation === "string";
+    return hasScientist && hasRanking && hasExplanation;
+  }
+  // Unknown phase (old v1 "prologue"/"path"/"ending" or any future shape): reject.
   return false;
 }
 
-function isSaveFileV1(value: unknown): value is SaveFileV1 {
+function isSaveFileV2(value: unknown): value is SaveFileV2 {
   if (!isRecord(value)) {
     return false;
   }
+  // Reject any save file whose version does not match this slot's expected version.
+  // Old v1 blobs have version: 1 and will correctly fail here, triggering a fresh run.
   const validSave = value.version === SAVE_VERSION && isGameState(value.state);
   return validSave;
 }
 
-export function storageSlot(): SaveSlotId {
-  return SAVE_SLOT;
-}
+//============================================
+// Public API
+//============================================
 
 export function loadGameState(storage: Storage): GameState {
   const raw = storage.getItem(STORAGE_KEY);
+  // No save present: start a fresh run.
   if (raw === null) {
     return createInitialState();
   }
-  const parsed: unknown = JSON.parse(raw);
-  if (!isSaveFileV1(parsed)) {
-    throw new Error("Stored game state has an unsupported shape.");
+  // Malformed JSON or wrong version/shape: start a fresh run rather than crashing.
+  // Old v1 saves (phase: "prologue"/"path"/"ending", routeScores, collapse) will fail
+  // isSaveFileV2 and land here -- that is the intended no-migration behavior.
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return createInitialState();
+  }
+  if (!isSaveFileV2(parsed)) {
+    return createInitialState();
   }
   return parsed.state;
 }
 
 export function saveGameState(storage: Storage, state: GameState): void {
-  const saveFile: SaveFileV1 = { version: SAVE_VERSION, state };
+  const saveFile: SaveFileV2 = { version: SAVE_VERSION, state };
   storage.setItem(STORAGE_KEY, JSON.stringify(saveFile));
 }
 
 export function clearGameState(storage: Storage): void {
   storage.removeItem(STORAGE_KEY);
-}
-
-export function resetGameState(storage: Storage): GameState {
-  clearGameState(storage);
-  const state = createInitialState();
-  return state;
-}
-
-export function normalizeChoiceIndex(index: number): 0 | 1 {
-  if (!isChoiceIndex(index)) {
-    throw new Error(`Choice index must be 0 or 1, got ${index}.`);
-  }
-  return index;
 }

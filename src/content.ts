@@ -1,13 +1,7 @@
 import { cardId, type CardId } from "./brands";
 import {
-  ARC_BEATS,
-  ENDING_TYPES,
-  SCIENTIST_IDS,
-  STAT_IDS,
-  type ArcBeat,
   type EffectDirection,
   type EffectMagnitude,
-  type EndingType,
   type ScientistId,
   type StatId,
 } from "./config";
@@ -26,10 +20,10 @@ export type Choice = {
 export type CareerCard = {
   readonly id: CardId;
   readonly prompt: string;
-  readonly arcBeat: ArcBeat;
-  readonly scientistSpecific: boolean;
-  readonly contributionTags: readonly string[];
   readonly choices: readonly [Choice, Choice];
+  // Stats this card is thematically about; used for draw-weight in the engine.
+  // Every probed stat must be affected by at least one of the two choices.
+  readonly probes: readonly StatId[];
 };
 
 export type SourceNote = {
@@ -37,58 +31,9 @@ export type SourceNote = {
   readonly url: string;
 };
 
-export type PathEnding = {
-  readonly type: EndingType;
-  readonly title: string;
-  readonly text: string;
-};
-
-export type ScientistPath = {
-  readonly scientistId: ScientistId;
-  readonly title: string;
-  readonly motifs: readonly [string, string, ...string[]];
-  readonly arcBeats: readonly ArcBeat[];
-  readonly cards: readonly CareerCard[];
-  readonly endings: readonly PathEnding[];
-  readonly sourceNotes: readonly SourceNote[];
-  readonly sensitiveAreas: readonly string[];
-};
-
-export type PrologueChoice = {
-  readonly label: string;
-  readonly routeTo: ScientistId;
-  readonly effect: Effect;
-};
-
-export type PrologueCard = {
-  readonly id: CardId;
-  readonly prompt: string;
-  readonly choices: readonly [PrologueChoice, PrologueChoice];
-};
-
 function effect(stat: StatId, direction: EffectDirection, magnitude: EffectMagnitude): Effect {
   const nextEffect = { stat, direction, magnitude };
   return nextEffect;
-}
-
-function card(
-  scientistId: ScientistId,
-  index: number,
-  prompt: string,
-  arcBeat: ArcBeat,
-  first: Choice,
-  second: Choice,
-  contributionTags: readonly string[] = [scientistId],
-): CareerCard {
-  const nextCard: CareerCard = {
-    id: cardId(`${scientistId}_${index}`),
-    prompt,
-    arcBeat,
-    scientistSpecific: contributionTags.length > 0,
-    contributionTags,
-    choices: [first, second],
-  };
-  return nextCard;
 }
 
 function choice(label: string, effects: readonly Effect[]): Choice {
@@ -96,783 +41,664 @@ function choice(label: string, effects: readonly Effect[]): Choice {
   return nextChoice;
 }
 
-const doudnaCards = [
-  card(
-    "jennifer_doudna",
-    1,
-    "A student brings data from a bacterial immune system that looks oddly programmable.",
-    "entry",
-    choice("Chase the weird system", [effect("curiosity", "up", "medium")]),
-    choice("Return to safer RNA structure", [effect("cash", "up", "small")]),
-    ["rna", "crispr"],
-  ),
-  card(
-    "jennifer_doudna",
-    2,
-    "A collaborator wants to simplify the system until it works in a tube.",
-    "entry",
-    choice("Strip it down", [effect("curiosity", "up", "medium")]),
-    choice("Preserve every biological detail", [effect("credibility", "up", "small")]),
-    ["crispr"],
-  ),
-  card(
-    "jennifer_doudna",
-    3,
-    "The first clean editing result lands on your desk.",
-    "breakthrough",
-    choice("Celebrate carefully", [effect("credibility", "up", "medium")]),
-    choice("Announce loudly", [effect("cash", "up", "medium")]),
-    ["genome_editing"],
-  ),
-  card(
-    "jennifer_doudna",
-    4,
-    "A patent office wants a timeline clearer than the science felt at the time.",
-    "pressure",
-    choice("Document the messy path", [effect("credibility", "up", "small")]),
-    choice("Let lawyers simplify it", [effect("cash", "up", "medium")]),
-    ["patents"],
-  ),
-  card(
-    "jennifer_doudna",
-    5,
-    "A reporter asks whether CRISPR will cure everything.",
-    "translation",
-    choice("Explain the limits", [effect("credibility", "up", "medium")]),
-    choice("Give the exciting answer", [effect("cash", "up", "small")]),
-    ["ethics"],
-  ),
-  card(
-    "jennifer_doudna",
-    6,
-    "A colleague warns that gene editing could move faster than public trust.",
-    "pressure",
-    choice("Call for guardrails", [effect("care", "up", "medium")]),
-    choice("Trust the field to adapt", [effect("curiosity", "up", "small")]),
-    ["ethics"],
-  ),
-  card(
-    "jennifer_doudna",
-    7,
-    "A startup offers resources for translation.",
-    "translation",
-    choice("Build the bridge", [effect("cash", "up", "large")]),
-    choice("Stay in basic science", [effect("curiosity", "up", "medium")]),
-    ["translation"],
-  ),
-  card(
-    "jennifer_doudna",
-    8,
-    "A student wants to edit an organism for a flashy demo.",
-    "pressure",
-    choice("Ask for the biological reason", [effect("credibility", "up", "small")]),
-    choice("Approve the spectacle", [effect("cash", "up", "medium")]),
-    ["ethics"],
-  ),
-  card(
-    "jennifer_doudna",
-    9,
-    "The public hears designer babies before hearing bacterial immunity.",
-    "translation",
-    choice("Enter the public debate", [effect("care", "up", "large")]),
-    choice("Stay in the lab", [effect("credibility", "up", "small")]),
-    ["public_trust"],
-  ),
-  card(
-    "jennifer_doudna",
-    10,
-    "A rival lab publishes fast.",
-    "pressure",
-    choice("Tighten your evidence", [effect("credibility", "up", "medium")]),
-    choice("Race sentence by sentence", [effect("care", "down", "medium")]),
-    ["credit"],
-  ),
-  card(
-    "jennifer_doudna",
-    11,
-    "The Nobel call arrives before coffee.",
-    "legacy",
-    choice("Share the credit widely", [effect("care", "up", "medium")]),
-    choice("Become the symbol", [effect("credibility", "up", "large")]),
-    ["nobel"],
-  ),
-  card(
-    "jennifer_doudna",
-    12,
-    "A new generation treats CRISPR as ordinary lab equipment.",
-    "legacy",
-    choice("Teach caution as a skill", [effect("care", "up", "medium")]),
-    choice("Let convenience win", [effect("curiosity", "up", "small")]),
-    ["legacy"],
-  ),
-] as const;
+//============================================
+// Scientist-neutral core deck
+//============================================
 
-const franklinCards = [
-  card(
-    "rosalind_franklin",
-    1,
-    "A diffraction pattern is almost clear enough to speak for itself.",
-    "entry",
-    choice("Collect cleaner data", [effect("credibility", "up", "medium")]),
-    choice("Publish the hint now", [effect("curiosity", "up", "medium")]),
-  ),
-  card(
-    "rosalind_franklin",
-    2,
-    "A colleague wants a quick model from partial evidence.",
-    "pressure",
-    choice("Demand more measurements", [effect("credibility", "up", "medium")]),
-    choice("Let the model lead", [effect("cash", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    3,
-    "The lab culture treats certainty as stubbornness.",
-    "pressure",
-    choice("Hold the line", [effect("credibility", "up", "medium")]),
-    choice("Soften the claim", [effect("care", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    4,
-    "A student produces a striking image.",
-    "breakthrough",
-    choice("Archive it carefully", [effect("credibility", "up", "medium")]),
-    choice("Show it around casually", [effect("curiosity", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    5,
-    "A meeting turns your caution into a personality flaw.",
-    "pressure",
-    choice("Return to the data", [effect("care", "up", "small")]),
-    choice("Fight the room", [effect("credibility", "up", "medium")]),
-  ),
-  card(
-    "rosalind_franklin",
-    6,
-    "Another group is moving fast with models.",
-    "pressure",
-    choice("Check every parameter", [effect("credibility", "up", "medium")]),
-    choice("Race with a rough sketch", [effect("curiosity", "up", "medium")]),
-  ),
-  card(
-    "rosalind_franklin",
-    7,
-    "A supervisor wants data shared without clear credit rules.",
-    "pressure",
-    choice("Ask for terms", [effect("credibility", "up", "medium")]),
-    choice("Keep the peace", [effect("care", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    8,
-    "The A-form data are difficult, but you trust the method.",
-    "entry",
-    choice("Stay with the hard pattern", [effect("curiosity", "up", "medium")]),
-    choice("Switch to the easier story", [effect("cash", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    9,
-    "A paper draft needs careful wording.",
-    "translation",
-    choice("Write narrowly", [effect("credibility", "up", "medium")]),
-    choice("Make the boldest claim", [effect("curiosity", "up", "large")]),
-  ),
-  card(
-    "rosalind_franklin",
-    10,
-    "You leave a tense project for new work.",
-    "translation",
-    choice("Carry the standards forward", [effect("care", "up", "medium")]),
-    choice("Carry the conflict forward", [effect("credibility", "up", "small")]),
-  ),
-  card(
-    "rosalind_franklin",
-    11,
-    "Later scientists cite the model more than the measurements.",
-    "legacy",
-    choice("Let the record build slowly", [effect("care", "up", "small")]),
-    choice("Demand the center stage", [effect("credibility", "up", "large")]),
-  ),
-  card(
-    "rosalind_franklin",
-    12,
-    "Students ask what the image teaches.",
-    "legacy",
-    choice("Teach evidence and credit", [effect("care", "up", "medium")]),
-    choice("Teach only the helix", [effect("cash", "up", "small")]),
-  ),
-] as const;
+// Built with a local helper (coreCard) so ids are neutral ("core_1".."core_NN").
+// Each card carries probes (stats it is about); every probed stat is affected
+// by at least one choice, per the probe-subset-of-effects rule enforced by
+// content validation.
+let coreCardCounter = 0;
+function coreCard(
+  prompt: string,
+  first: Choice,
+  second: Choice,
+  probes: readonly StatId[],
+): CareerCard {
+  coreCardCounter += 1;
+  const nextCard: CareerCard = {
+    id: cardId(`core_${coreCardCounter}`),
+    prompt,
+    choices: [first, second],
+    probes,
+  };
+  return nextCard;
+}
 
-const curieCards = [
-  card(
-    "marie_curie",
-    1,
-    "A crude workspace is available, if you can call it a workspace.",
-    "entry",
-    choice("Use the shed", [effect("curiosity", "up", "medium")]),
-    choice("Wait for proper space", [effect("care", "up", "medium")]),
+export const CORE_DECK: readonly CareerCard[] = [
+  coreCard(
+    "A funder offers a large grant if you promise results on their fast timeline.",
+    choice("Take the money and the deadline", [
+      effect("cash", "up", "large"),
+      effect("care", "down", "small"),
+    ]),
+    choice("Decline and keep your own pace", [
+      effect("cash", "down", "small"),
+      effect("care", "up", "medium"),
+    ]),
+    ["cash", "care"],
   ),
-  card(
-    "marie_curie",
-    2,
-    "A mineral sample gives stronger readings than expected.",
-    "entry",
-    choice("Follow the anomaly", [effect("curiosity", "up", "medium")]),
-    choice("Blame the instrument", [effect("credibility", "up", "small")]),
+  coreCard(
+    "Your data quietly contradict the hypothesis your whole project is built on.",
+    choice("Report the contradiction openly", [
+      effect("credibility", "up", "large"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Set the odd data aside for now", [
+      effect("credibility", "down", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    ["credibility", "curiosity"],
   ),
-  card(
-    "marie_curie",
-    3,
-    "Processing ore will take months of exhausting labor.",
-    "pressure",
-    choice("Start boiling vats", [effect("curiosity", "up", "large")]),
-    choice("Search for shortcuts", [effect("care", "up", "small")]),
+  coreCard(
+    "A senior colleague wants first authorship on work you led.",
+    choice("Insist on fair credit", [
+      effect("credibility", "up", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    choice("Concede to keep the peace", [
+      effect("care", "up", "medium"),
+      effect("credibility", "down", "medium"),
+    ]),
+    ["credibility", "care"],
   ),
-  card(
-    "marie_curie",
-    4,
-    "The public wants a simple story about invisible rays.",
-    "translation",
-    choice("Explain cautiously", [effect("credibility", "up", "medium")]),
-    choice("Let wonder lead", [effect("cash", "up", "medium")]),
+  coreCard(
+    "A risky experiment could be a breakthrough or a dead end with months lost.",
+    choice("Run the risky experiment", [
+      effect("curiosity", "up", "large"),
+      effect("cash", "down", "medium"),
+    ]),
+    choice("Choose the safe, fundable study", [
+      effect("cash", "up", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    ["curiosity", "cash"],
   ),
-  card(
-    "marie_curie",
-    5,
-    "A colleague says safety rules will slow everything down.",
-    "pressure",
-    choice("Add precautions", [effect("care", "up", "large")]),
-    choice("Push through", [effect("curiosity", "up", "medium")]),
+  coreCard(
+    "A popular talk invitation would eat a week of lab time but reach thousands.",
+    choice("Give the public talk", [
+      effect("care", "up", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    choice("Stay at the bench", [
+      effect("curiosity", "up", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    ["care", "curiosity"],
   ),
-  card(
-    "marie_curie",
-    6,
-    "The measurements are consistent, but the substance is tiny.",
-    "breakthrough",
-    choice("Trust the numbers", [effect("credibility", "up", "medium")]),
-    choice("Wait for visible proof", [effect("cash", "down", "small")]),
+  coreCard(
+    "A rival team may publish the same finding within weeks.",
+    choice("Rush a thinner paper out first", [
+      effect("cash", "up", "small"),
+      effect("credibility", "down", "medium"),
+    ]),
+    choice("Hold for the careful version", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    ["credibility", "cash"],
   ),
-  card(
-    "marie_curie",
-    7,
-    "Recognition brings attention, but not enough support.",
-    "translation",
-    choice("Ask for resources", [effect("cash", "up", "medium")]),
-    choice("Keep working quietly", [effect("care", "down", "small")]),
+  coreCard(
+    "A struggling junior researcher needs hours of mentoring you do not have.",
+    choice("Make the time to mentor them", [
+      effect("care", "up", "large"),
+      effect("curiosity", "down", "small"),
+    ]),
+    choice("Protect your own deadlines", [
+      effect("curiosity", "up", "small"),
+      effect("care", "down", "medium"),
+    ]),
+    ["care", "curiosity"],
   ),
-  card(
-    "marie_curie",
-    8,
-    "A newspaper wants the heroic version.",
-    "translation",
-    choice("Mention the labor", [effect("credibility", "up", "medium")]),
-    choice("Feed the myth", [effect("cash", "up", "medium")]),
+  coreCard(
+    "A flashy result would impress reviewers, but one control is still missing.",
+    choice("Add the slow control first", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Submit now and add it later", [
+      effect("cash", "up", "medium"),
+      effect("credibility", "down", "medium"),
+    ]),
+    ["credibility", "cash"],
   ),
-  card(
-    "marie_curie",
-    9,
-    "A student wants to handle samples casually.",
-    "pressure",
-    choice("Stop the habit", [effect("care", "up", "large")]),
-    choice("Assume everyone knows", [effect("curiosity", "up", "small")]),
+  coreCard(
+    "An odd side observation has nothing to do with your funded goal.",
+    choice("Chase the curious tangent", [
+      effect("curiosity", "up", "large"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Stay focused on the deliverable", [
+      effect("cash", "up", "small"),
+      effect("curiosity", "down", "medium"),
+    ]),
+    ["curiosity", "cash"],
   ),
-  card(
-    "marie_curie",
-    10,
-    "A prize committee notices the work late.",
-    "legacy",
-    choice("Accept and redirect attention", [effect("cash", "up", "medium")]),
-    choice("Ignore the ceremony", [effect("care", "up", "small")]),
+  coreCard(
+    "A company will fund your lab if you keep the method confidential.",
+    choice("Take the deal and stay quiet", [
+      effect("cash", "up", "large"),
+      effect("care", "down", "medium"),
+    ]),
+    choice("Keep the method open to all", [
+      effect("care", "up", "medium"),
+      effect("cash", "down", "medium"),
+    ]),
+    ["cash", "care"],
   ),
-  card(
-    "marie_curie",
-    11,
-    "Medical uses of radiation become tempting.",
-    "translation",
-    choice("Support cautious translation", [effect("credibility", "up", "medium")]),
-    choice("Promise miracles", [effect("cash", "up", "large")]),
+  coreCard(
+    "A reporter wants a bold quote that overstates what your study shows.",
+    choice("Correct the overstatement", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Give the headline they want", [
+      effect("cash", "up", "medium"),
+      effect("credibility", "down", "large"),
+    ]),
+    ["credibility", "cash"],
   ),
-  card(
-    "marie_curie",
-    12,
-    "The next generation asks what discovery costs.",
-    "legacy",
-    choice("Tell the full story", [effect("care", "up", "medium")]),
-    choice("Polish the legend", [effect("credibility", "up", "large")]),
+  coreCard(
+    "Faster lab shortcuts would skip some safety checks.",
+    choice("Keep every safety check", [
+      effect("care", "up", "large"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Cut checks to move faster", [
+      effect("cash", "up", "medium"),
+      effect("care", "down", "large"),
+    ]),
+    ["care", "cash"],
   ),
-] as const;
+  coreCard(
+    "A reviewer demands months of extra experiments you doubt are needed.",
+    choice("Do the extra work thoroughly", [
+      effect("credibility", "up", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    choice("Push back and defend the paper", [
+      effect("curiosity", "up", "small"),
+      effect("credibility", "down", "small"),
+    ]),
+    ["credibility", "curiosity"],
+  ),
+  coreCard(
+    "A collaboration offer would share credit but double your reach.",
+    choice("Join forces and share credit", [
+      effect("care", "up", "medium"),
+      effect("credibility", "down", "small"),
+    ]),
+    choice("Keep the project solely yours", [
+      effect("credibility", "up", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    ["care", "credibility"],
+  ),
+  coreCard(
+    "A boring but solid dataset sits next to a wild, uncertain idea.",
+    choice("Dig into the wild idea", [
+      effect("curiosity", "up", "large"),
+      effect("credibility", "down", "small"),
+    ]),
+    choice("Build on the solid dataset", [
+      effect("credibility", "up", "medium"),
+      effect("curiosity", "down", "medium"),
+    ]),
+    ["curiosity", "credibility"],
+  ),
+  coreCard(
+    "Equipment failed and a costly repair would drain this year's budget.",
+    choice("Pay for the proper repair", [
+      effect("care", "up", "small"),
+      effect("cash", "down", "large"),
+    ]),
+    choice("Improvise a cheap workaround", [
+      effect("cash", "up", "medium"),
+      effect("care", "down", "medium"),
+    ]),
+    ["care", "cash"],
+  ),
+  coreCard(
+    "A volunteer outreach program wants you to teach kids on weekends.",
+    choice("Commit to the outreach", [
+      effect("care", "up", "large"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Reserve weekends for research", [
+      effect("curiosity", "up", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    ["care", "curiosity"],
+  ),
+  coreCard(
+    "Your bold preliminary claim is getting attention before it is confirmed.",
+    choice("Walk it back until confirmed", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Ride the buzz while it lasts", [
+      effect("cash", "up", "large"),
+      effect("credibility", "down", "medium"),
+    ]),
+    ["credibility", "cash"],
+  ),
+  coreCard(
+    "A grant rewards quantity of papers over depth of any single study.",
+    choice("Split the work into many papers", [
+      effect("cash", "up", "medium"),
+      effect("credibility", "down", "small"),
+    ]),
+    choice("Write one deep, careful paper", [
+      effect("credibility", "up", "large"),
+      effect("cash", "down", "medium"),
+    ]),
+    ["cash", "credibility"],
+  ),
+  coreCard(
+    "An unexpected anomaly tempts you away from a nearly finished project.",
+    choice("Follow the anomaly now", [
+      effect("curiosity", "up", "large"),
+      effect("care", "down", "small"),
+    ]),
+    choice("Finish what you started first", [
+      effect("care", "up", "medium"),
+      effect("curiosity", "down", "medium"),
+    ]),
+    ["curiosity", "care"],
+  ),
+  coreCard(
+    "A whistleblower role would expose sloppy data but burn key relationships.",
+    choice("Report the bad data", [
+      effect("credibility", "up", "large"),
+      effect("care", "down", "medium"),
+    ]),
+    choice("Stay quiet to keep allies", [
+      effect("care", "up", "small"),
+      effect("credibility", "down", "large"),
+    ]),
+    ["credibility", "care"],
+  ),
+];
 
-const flemingCards = [
-  card(
-    "alexander_fleming",
-    1,
-    "A plate looks ruined by mold.",
-    "entry",
-    choice("Look closer", [effect("curiosity", "up", "medium")]),
-    choice("Throw it away", [effect("care", "up", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    2,
-    "The bacteria around the mold have vanished.",
-    "breakthrough",
-    choice("Repeat the observation", [effect("credibility", "up", "medium")]),
-    choice("Call it a lucky mess", [effect("curiosity", "up", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    3,
-    "The substance is unstable and hard to purify.",
-    "pressure",
-    choice("Publish the clue", [effect("credibility", "up", "medium")]),
-    choice("Wait for a product", [effect("cash", "down", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    4,
-    "A hospital case reminds you why infection matters.",
-    "entry",
-    choice("Connect lab to clinic", [effect("care", "up", "medium")]),
-    choice("Stay with petri dishes", [effect("curiosity", "up", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    5,
-    "A colleague jokes that your lab is too messy.",
-    "pressure",
-    choice("Defend observation", [effect("credibility", "up", "medium")]),
-    choice("Clean away the evidence", [effect("care", "up", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    6,
-    "The paper gets modest attention.",
-    "translation",
-    choice("Keep the record clear", [effect("credibility", "up", "medium")]),
-    choice("Oversell the cure", [effect("cash", "up", "medium")]),
-  ),
-  card(
-    "alexander_fleming",
-    7,
-    "Chemists may be needed to make the drug real.",
-    "translation",
-    choice("Invite translation", [effect("care", "up", "medium")]),
-    choice("Guard the discovery", [effect("credibility", "up", "large")]),
-  ),
-  card(
-    "alexander_fleming",
-    8,
-    "War increases demand for infection treatment.",
-    "pressure",
-    choice("Push collaboration", [effect("care", "up", "medium")]),
-    choice("Wait for normal conditions", [effect("cash", "down", "small")]),
-  ),
-  card(
-    "alexander_fleming",
-    9,
-    "Mass production needs industry.",
-    "translation",
-    choice("Accept scale-up", [effect("cash", "up", "large")]),
-    choice("Distrust the factory", [effect("care", "up", "medium")]),
-  ),
-  card(
-    "alexander_fleming",
-    10,
-    "The public wants one hero.",
-    "legacy",
-    choice("Name the team", [effect("credibility", "up", "medium")]),
-    choice("Accept the legend", [effect("cash", "up", "medium")]),
-  ),
-  card(
-    "alexander_fleming",
-    11,
-    "Antibiotic use grows quickly.",
-    "legacy",
-    choice("Warn about resistance", [effect("credibility", "up", "medium")]),
-    choice("Celebrate without caveats", [effect("cash", "up", "large")]),
-  ),
-  card(
-    "alexander_fleming",
-    12,
-    "Students ask about luck in science.",
-    "legacy",
-    choice("Teach prepared noticing", [effect("curiosity", "up", "medium")]),
-    choice("Teach the miracle story", [effect("credibility", "up", "small")]),
-  ),
-] as const;
+//============================================
+// Scientist flavor pool
+//============================================
 
-const karikoCards = [
-  card(
-    "katalin_kariko",
-    1,
-    "Another grant review calls mRNA unrealistic.",
-    "entry",
-    choice("Keep going", [effect("curiosity", "up", "medium")]),
-    choice("Choose a safer project", [effect("cash", "up", "small")]),
-  ),
-  card(
-    "katalin_kariko",
-    2,
-    "A colleague suggests your career would survive better with a trendier molecule.",
-    "pressure",
-    choice("Stay with mRNA", [effect("curiosity", "up", "medium")]),
-    choice("Follow the trend", [effect("care", "up", "small")]),
-  ),
-  card(
-    "katalin_kariko",
-    3,
-    "The immune response keeps wrecking the experiment.",
-    "breakthrough",
-    choice("Change the nucleosides", [effect("curiosity", "up", "large")]),
-    choice("Lower the ambition", [effect("credibility", "up", "small")]),
-  ),
-  card(
-    "katalin_kariko",
-    4,
-    "A hallway conversation points toward collaboration.",
-    "entry",
-    choice("Share the problem", [effect("care", "up", "medium")]),
-    choice("Protect the idea", [effect("credibility", "up", "medium")]),
-  ),
-  card(
-    "katalin_kariko",
-    5,
-    "The data improve, but funding does not.",
-    "pressure",
-    choice("Patch together resources", [effect("cash", "up", "small")]),
-    choice("Pause the project", [effect("care", "up", "medium")]),
-  ),
-  card(
-    "katalin_kariko",
-    6,
-    "A demotion threatens morale.",
-    "pressure",
-    choice("Separate title from purpose", [effect("curiosity", "up", "medium")]),
-    choice("Take the hint", [effect("care", "up", "small")]),
-  ),
-  card(
-    "katalin_kariko",
-    7,
-    "A paper reviewer wants stronger evidence.",
-    "translation",
-    choice("Do the extra controls", [effect("credibility", "up", "medium")]),
-    choice("Argue harder", [effect("care", "down", "small")]),
-  ),
-  card(
-    "katalin_kariko",
-    8,
-    "Companies begin noticing mRNA platforms.",
-    "translation",
-    choice("Enter translation", [effect("cash", "up", "large")]),
-    choice("Stay purely academic", [effect("credibility", "up", "medium")]),
-  ),
-  card(
-    "katalin_kariko",
-    9,
-    "A pandemic changes the urgency overnight.",
-    "translation",
-    choice("Move fast with evidence", [effect("care", "up", "medium")]),
-    choice("Move fast with slogans", [effect("cash", "up", "medium")]),
-  ),
-  card(
-    "katalin_kariko",
-    10,
-    "The public hears new vaccine technology and worries.",
-    "translation",
-    choice("Explain the history", [effect("credibility", "up", "medium")]),
-    choice("Dismiss the fear", [effect("care", "down", "medium")]),
-  ),
-  card(
-    "katalin_kariko",
-    11,
-    "Recognition arrives after decades of no.",
-    "legacy",
-    choice("Share the persistence story", [effect("care", "up", "medium")]),
-    choice("Polish it into destiny", [effect("credibility", "up", "large")]),
-  ),
-  card(
-    "katalin_kariko",
-    12,
-    "Students ask how to survive rejection.",
-    "legacy",
-    choice("Teach adaptation plus stubbornness", [effect("care", "up", "medium")]),
-    choice("Teach stubbornness only", [effect("curiosity", "up", "large")]),
-  ),
-] as const;
+// Flavor cards are retagged versions of the original scientist decks. They carry
+// thematic flavor but must NOT name a scientist or use an instantly-identifying
+// term (see the leak-term denylist enforced by content validation). Ids are
+// branded as "flavor_<scientist>_<n>" so they never collide with core_* cards.
+// Probes follow the subset rule.
+function flavorCard(
+  scientistId: ScientistId,
+  index: number,
+  prompt: string,
+  first: Choice,
+  second: Choice,
+  probes: readonly StatId[],
+): CareerCard {
+  const nextCard: CareerCard = {
+    id: cardId(`flavor_${scientistId}_${index}`),
+    prompt,
+    choices: [first, second],
+    probes,
+  };
+  return nextCard;
+}
 
-const commonEndings = [
-  {
-    type: "balanced_legacy",
-    title: "The work stays usable",
-    text: "You leave a record that names limits, credits help, and keeps the next question alive.",
-  },
-  {
-    type: "evidence_burnout",
-    title: "The evidence becomes a cage",
-    text: "The standards are real, but the career can no longer move under their weight.",
-  },
-  {
-    type: "institutional_capture",
-    title: "The machine adopts the discovery",
-    text: "Money, prestige, or public appetite keeps the project moving in the wrong direction.",
-  },
-  {
-    type: "reckless_velocity",
-    title: "The story outruns the science",
-    text: "The field hears momentum where it needed measurement.",
-  },
-] as const satisfies readonly PathEnding[];
+// Flavor decks keyed by scientist. Prompts keep each scientist's underlying
+// dilemma but drop the fingerprint: no surnames and no identifying nouns such as
+// "mRNA", "radium", "Photo 51", "mold plate", "penicillin", or "CRISPR".
+export const FLAVOR_POOL: Record<ScientistId, readonly CareerCard[]> = {
+  jennifer_doudna: [
+    flavorCard(
+      "jennifer_doudna",
+      1,
+      "A student brings data from a microbial defense system that looks oddly programmable.",
+      choice("Chase the strange, repurposable system", [
+        effect("curiosity", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Return to safer, fundable structural work", [
+        effect("cash", "up", "small"),
+        effect("curiosity", "down", "small"),
+      ]),
+      ["curiosity", "cash"],
+    ),
+    flavorCard(
+      "jennifer_doudna",
+      2,
+      "A powerful new editing tool could move faster than public trust in it.",
+      choice("Call for shared guardrails first", [
+        effect("care", "up", "large"),
+        effect("curiosity", "down", "small"),
+      ]),
+      choice("Trust the field to sort it out later", [
+        effect("curiosity", "up", "medium"),
+        effect("care", "down", "small"),
+      ]),
+      ["care", "curiosity"],
+    ),
+    flavorCard(
+      "jennifer_doudna",
+      3,
+      "A patent office wants a timeline far cleaner than the science actually felt.",
+      choice("Document the messy real path", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Let lawyers smooth the story", [
+        effect("cash", "up", "medium"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "cash"],
+    ),
+    flavorCard(
+      "jennifer_doudna",
+      4,
+      "The public hears the scariest application before it hears the basic science.",
+      choice("Step into the public debate", [
+        effect("care", "up", "large"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Stay quiet in the lab", [
+        effect("credibility", "up", "small"),
+        effect("care", "down", "medium"),
+      ]),
+      ["care", "credibility"],
+    ),
+  ],
+  rosalind_franklin: [
+    flavorCard(
+      "rosalind_franklin",
+      1,
+      "An imaging pattern is almost clear enough to speak for itself.",
+      choice("Collect cleaner data before claiming", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Publish the suggestive hint now", [
+        effect("curiosity", "up", "medium"),
+        effect("credibility", "down", "small"),
+      ]),
+      ["credibility", "curiosity"],
+    ),
+    flavorCard(
+      "rosalind_franklin",
+      2,
+      "A colleague wants a quick model built from your partial evidence.",
+      choice("Demand more measurements first", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Let the speculative model lead", [
+        effect("cash", "up", "small"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "cash"],
+    ),
+    flavorCard(
+      "rosalind_franklin",
+      3,
+      "A supervisor wants your data shared with no clear credit rules.",
+      choice("Ask for written terms on credit", [
+        effect("credibility", "up", "medium"),
+        effect("care", "down", "small"),
+      ]),
+      choice("Keep the peace and hand it over", [
+        effect("care", "up", "medium"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "care"],
+    ),
+    flavorCard(
+      "rosalind_franklin",
+      4,
+      "A meeting reframes your caution as a personality flaw.",
+      choice("Return calmly to the data", [
+        effect("care", "up", "small"),
+        effect("curiosity", "down", "small"),
+      ]),
+      choice("Fight the room to defend the standard", [
+        effect("credibility", "up", "medium"),
+        effect("care", "down", "medium"),
+      ]),
+      ["care", "credibility"],
+    ),
+  ],
+  marie_curie: [
+    flavorCard(
+      "marie_curie",
+      1,
+      "Only a crude, drafty workspace is available, if you can call it a workspace.",
+      choice("Start the work in the shed anyway", [
+        effect("curiosity", "up", "large"),
+        effect("care", "down", "small"),
+      ]),
+      choice("Wait for proper, safer space", [
+        effect("care", "up", "medium"),
+        effect("curiosity", "down", "small"),
+      ]),
+      ["curiosity", "care"],
+    ),
+    flavorCard(
+      "marie_curie",
+      2,
+      "Processing the raw ore will take months of exhausting manual labor.",
+      choice("Commit to the grinding work", [
+        effect("curiosity", "up", "large"),
+        effect("cash", "down", "medium"),
+      ]),
+      choice("Hunt for a cheaper shortcut", [
+        effect("cash", "up", "medium"),
+        effect("curiosity", "down", "small"),
+      ]),
+      ["curiosity", "cash"],
+    ),
+    flavorCard(
+      "marie_curie",
+      3,
+      "A colleague says safety precautions will only slow the discovery down.",
+      choice("Add the precautions anyway", [
+        effect("care", "up", "large"),
+        effect("curiosity", "down", "small"),
+      ]),
+      choice("Push through without them", [
+        effect("curiosity", "up", "medium"),
+        effect("care", "down", "large"),
+      ]),
+      ["care", "curiosity"],
+    ),
+    flavorCard(
+      "marie_curie",
+      4,
+      "A newspaper wants the heroic, mythologized version of your work.",
+      choice("Insist they mention the hard labor", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Feed the flattering myth", [
+        effect("cash", "up", "medium"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "cash"],
+    ),
+  ],
+  alexander_fleming: [
+    flavorCard(
+      "alexander_fleming",
+      1,
+      "An accidental contamination on a dish reveals something unexpected.",
+      choice("Look closer at the strange clearing", [
+        effect("curiosity", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Discard the spoiled dish and move on", [
+        effect("care", "up", "small"),
+        effect("curiosity", "down", "medium"),
+      ]),
+      ["curiosity", "care"],
+    ),
+    flavorCard(
+      "alexander_fleming",
+      2,
+      "The promising substance is unstable and very hard to purify.",
+      choice("Publish the clue for others to chase", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Hold it back until it becomes a product", [
+        effect("cash", "up", "small"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "cash"],
+    ),
+    flavorCard(
+      "alexander_fleming",
+      3,
+      "Turning the discovery into a real treatment needs outside chemists.",
+      choice("Invite collaborators to scale it up", [
+        effect("care", "up", "medium"),
+        effect("credibility", "down", "small"),
+      ]),
+      choice("Guard the discovery as yours alone", [
+        effect("credibility", "up", "large"),
+        effect("care", "down", "medium"),
+      ]),
+      ["care", "credibility"],
+    ),
+    flavorCard(
+      "alexander_fleming",
+      4,
+      "Wide use of the new treatment is growing fast, and so is misuse.",
+      choice("Warn loudly about resistance", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Celebrate without the caveats", [
+        effect("cash", "up", "large"),
+        effect("credibility", "down", "medium"),
+      ]),
+      ["credibility", "cash"],
+    ),
+  ],
+  katalin_kariko: [
+    flavorCard(
+      "katalin_kariko",
+      1,
+      "Another grant review calls your favored molecule unrealistic.",
+      choice("Keep going on the unfashionable idea", [
+        effect("curiosity", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      choice("Switch to a safer, fundable project", [
+        effect("cash", "up", "small"),
+        effect("curiosity", "down", "medium"),
+      ]),
+      ["curiosity", "cash"],
+    ),
+    flavorCard(
+      "katalin_kariko",
+      2,
+      "A demotion threatens your title, your pay, and your morale.",
+      choice("Separate your title from your purpose", [
+        effect("curiosity", "up", "medium"),
+        effect("cash", "down", "medium"),
+      ]),
+      choice("Take the hint and step back", [
+        effect("care", "up", "small"),
+        effect("curiosity", "down", "medium"),
+      ]),
+      ["curiosity", "cash"],
+    ),
+    flavorCard(
+      "katalin_kariko",
+      3,
+      "Companies finally start noticing the platform you bet your career on.",
+      choice("Move into translation and scale-up", [
+        effect("cash", "up", "large"),
+        effect("curiosity", "down", "small"),
+      ]),
+      choice("Stay purely academic and independent", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      ["cash", "credibility"],
+    ),
+    flavorCard(
+      "katalin_kariko",
+      4,
+      "A worried public hears about an unfamiliar new technology.",
+      choice("Patiently explain its long history", [
+        effect("credibility", "up", "medium"),
+        effect("care", "up", "small"),
+      ]),
+      choice("Dismiss the fear as ignorance", [
+        effect("care", "down", "medium"),
+        effect("credibility", "down", "small"),
+      ]),
+      ["credibility", "care"],
+    ),
+  ],
+};
+
+//============================================
+// Source notes (preserved per scientist)
+//============================================
 
 function source(label: string, url: string): SourceNote {
   const note = { label, url };
   return note;
 }
 
-function path(
-  scientistId: ScientistId,
-  title: string,
-  motifs: readonly [string, string, ...string[]],
-  cards: readonly CareerCard[],
-  sourceNotes: readonly [SourceNote, SourceNote, SourceNote, ...SourceNote[]],
-  sensitiveAreas: readonly string[],
-): ScientistPath {
-  const scientistPath = {
-    scientistId,
-    title,
-    motifs,
-    arcBeats: ARC_BEATS,
-    cards,
-    endings: commonEndings,
-    sourceNotes,
-    sensitiveAreas,
-  };
-  return scientistPath;
-}
-
-export const SCIENTIST_PATHS = {
-  jennifer_doudna: path(
-    "jennifer_doudna",
-    "The tool becomes bigger than the lab",
-    [
-      "The bacterial immune system keeps looking like a toolbox.",
-      "Every exciting tool arrives with a committee, a patent lawyer, and an ethics panel.",
-    ],
-    doudnaCards,
-    [
-      source("Nobel Prize facts", "https://www.nobelprize.org/prizes/chemistry/2020/doudna/facts/"),
-      source(
-        "Nobel biographical note",
-        "https://www.nobelprize.org/prizes/chemistry/2020/doudna/biographical/",
-      ),
-      source("Britannica overview", "https://www.britannica.com/biography/Jennifer-Doudna"),
-    ],
-    ["ethical controversy", "credit disputes", "public fear", "patents"],
-  ),
-  rosalind_franklin: path(
-    "rosalind_franklin",
-    "The data are clear, but the room is not fair",
-    [
-      "The photograph knows the answer before the room agrees.",
-      "Precision is treated like delay by people in a hurry.",
-    ],
-    franklinCards,
-    [
-      source("King's College London profile", "https://www.kcl.ac.uk/people/rosalind-franklin"),
-      source("Britannica overview", "https://www.britannica.com/biography/Rosalind-Franklin"),
-      source(
-        "Nature education DNA history",
-        "https://www.nature.com/scitable/topicpage/discovery-of-dna-structure-and-function-watson-397/",
-      ),
-    ],
-    ["credit disputes", "discrimination", "institutional conflict"],
-  ),
-  marie_curie: path(
-    "marie_curie",
-    "Discovery has a cost",
-    [
-      "The shed is not a lab, but the data do not care.",
-      "The glow is beautiful, and also a warning.",
-    ],
-    curieCards,
-    [
-      source(
-        "1903 Nobel Prize facts",
-        "https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/",
-      ),
-      source(
-        "1911 Nobel Prize facts",
-        "https://www.nobelprize.org/prizes/chemistry/1911/marie-curie/facts/",
-      ),
-      source(
-        "Nobel biographical note",
-        "https://www.nobelprize.org/prizes/physics/1903/marie-curie/biographical/",
-      ),
-    ],
-    ["illness", "restricted education", "unsafe working conditions", "public attention"],
-  ),
-  alexander_fleming: path(
-    "alexander_fleming",
-    "The accident only matters if someone notices",
-    [
-      "Contamination is usually a problem, until it is the plot.",
-      "A discovery is not the same thing as a treatment.",
-    ],
-    flemingCards,
-    [
-      source(
-        "Nobel biographical note",
-        "https://www.nobelprize.org/prizes/medicine/1945/fleming/biographical/",
-      ),
-      source("Nobel facts", "https://www.nobelprize.org/prizes/medicine/1945/fleming/facts/"),
-      source("Britannica overview", "https://www.britannica.com/biography/Alexander-Fleming"),
-    ],
-    ["credit disputes", "war translation", "ethical antibiotic use"],
-  ),
-  katalin_kariko: path(
-    "katalin_kariko",
-    "The risky idea keeps getting rejected",
-    [
-      "The grant system says no. The molecule says maybe.",
-      "A risky idea is only obvious after it works.",
-    ],
-    karikoCards,
-    [
-      source("Nobel facts", "https://www.nobelprize.org/prizes/medicine/2023/kariko/facts/"),
-      source(
-        "Nobel press release",
-        "https://www.nobelprize.org/prizes/medicine/2023/press-release/",
-      ),
-      source(
-        "University of Pennsylvania profile",
-        "https://www.pennmedicine.org/news/news-releases/2023/october/katalin-kariko-and-drew-weissman-win-2023-nobel-prize-in-medicine",
-      ),
-    ],
-    ["discrimination", "career rejection", "political conflict", "public health fear"],
-  ),
-} as const satisfies Record<ScientistId, ScientistPath>;
-
-export const PROLOGUE_CARDS = [
-  {
-    id: cardId("prologue_1"),
-    prompt: "A strange result appears in the lab, but the project has almost no money.",
-    choices: [
-      {
-        label: "Follow the strange result",
-        routeTo: "jennifer_doudna",
-        effect: effect("curiosity", "up", "small"),
-      },
-      {
-        label: "Ask for stronger evidence first",
-        routeTo: "rosalind_franklin",
-        effect: effect("credibility", "up", "small"),
-      },
-    ],
-  },
-  {
-    id: cardId("prologue_2"),
-    prompt: "The lab space is bad. Waiting for better tools could slow the work.",
-    choices: [
-      {
-        label: "Start with what you have",
-        routeTo: "marie_curie",
-        effect: effect("curiosity", "up", "small"),
-      },
-      {
-        label: "Wait for better support",
-        routeTo: "alexander_fleming",
-        effect: effect("credibility", "up", "small"),
-      },
-    ],
-  },
-  {
-    id: cardId("prologue_3"),
-    prompt: "A reviewer says the risky idea is probably wrong.",
-    choices: [
-      {
-        label: "Keep testing the risky idea",
-        routeTo: "katalin_kariko",
-        effect: effect("curiosity", "up", "small"),
-      },
-      {
-        label: "Find a collaborator who understands it",
-        routeTo: "jennifer_doudna",
-        effect: effect("care", "up", "small"),
-      },
-    ],
-  },
-  {
-    id: cardId("prologue_4"),
-    prompt: "People want a quick answer, but the data are not ready.",
-    choices: [
-      {
-        label: "Slow down and protect the evidence",
-        routeTo: "rosalind_franklin",
-        effect: effect("credibility", "up", "small"),
-      },
-      {
-        label: "Share the early clue and keep working",
-        routeTo: "alexander_fleming",
-        effect: effect("care", "up", "small"),
-      },
-    ],
-  },
-  {
-    id: cardId("prologue_5"),
-    prompt: "Your career is taking shape. Which problem feels worth the pressure?",
-    choices: [
-      {
-        label: "Keep going after years of rejection",
-        routeTo: "katalin_kariko",
-        effect: effect("cash", "down", "small"),
-      },
-      {
-        label: "Follow a dangerous discovery into the unknown",
-        routeTo: "marie_curie",
-        effect: effect("care", "up", "small"),
-      },
-    ],
-  },
-] as const satisfies readonly PrologueCard[];
-
-export const GAME_CONTENT = {
-  paths: SCIENTIST_PATHS,
-  prologueCards: PROLOGUE_CARDS,
-} as const;
-
-export function getScientistPath(scientistId: ScientistId): ScientistPath {
-  const scientistPath = SCIENTIST_PATHS[scientistId];
-  return scientistPath;
-}
-
-export function getRouteCoverage(): Readonly<Record<ScientistId, number>> {
-  const coverage: Record<ScientistId, number> = {
-    jennifer_doudna: 0,
-    rosalind_franklin: 0,
-    marie_curie: 0,
-    alexander_fleming: 0,
-    katalin_kariko: 0,
-  };
-
-  for (const prologueCard of PROLOGUE_CARDS) {
-    for (const prologueChoice of prologueCard.choices) {
-      coverage[prologueChoice.routeTo] += 1;
-    }
-  }
-
-  return coverage;
-}
-
-export function scientistIds(): readonly ScientistId[] {
-  return SCIENTIST_IDS;
-}
-
-export function statIds(): readonly StatId[] {
-  return STAT_IDS;
-}
-
-export function endingTypes(): readonly EndingType[] {
-  return ENDING_TYPES;
-}
+// Per-scientist educational source notes, read by the result reveal screen once
+// the matched scientist's notes are unlocked.
+export const SCIENTIST_SOURCE_NOTES: Record<ScientistId, readonly SourceNote[]> = {
+  jennifer_doudna: [
+    source("Nobel Prize facts", "https://www.nobelprize.org/prizes/chemistry/2020/doudna/facts/"),
+    source(
+      "Nobel biographical note",
+      "https://www.nobelprize.org/prizes/chemistry/2020/doudna/biographical/",
+    ),
+    source("Britannica overview", "https://www.britannica.com/biography/Jennifer-Doudna"),
+  ],
+  rosalind_franklin: [
+    source("King's College London profile", "https://www.kcl.ac.uk/people/rosalind-franklin"),
+    source("Britannica overview", "https://www.britannica.com/biography/Rosalind-Franklin"),
+    source(
+      "Nature education DNA history",
+      "https://www.nature.com/scitable/topicpage/discovery-of-dna-structure-and-function-watson-397/",
+    ),
+  ],
+  marie_curie: [
+    source(
+      "1903 Nobel Prize facts",
+      "https://www.nobelprize.org/prizes/physics/1903/marie-curie/facts/",
+    ),
+    source(
+      "1911 Nobel Prize facts",
+      "https://www.nobelprize.org/prizes/chemistry/1911/marie-curie/facts/",
+    ),
+    source(
+      "Nobel biographical note",
+      "https://www.nobelprize.org/prizes/physics/1903/marie-curie/biographical/",
+    ),
+  ],
+  alexander_fleming: [
+    source(
+      "Nobel biographical note",
+      "https://www.nobelprize.org/prizes/medicine/1945/fleming/biographical/",
+    ),
+    source("Nobel facts", "https://www.nobelprize.org/prizes/medicine/1945/fleming/facts/"),
+    source("Britannica overview", "https://www.britannica.com/biography/Alexander-Fleming"),
+  ],
+  katalin_kariko: [
+    source("Nobel facts", "https://www.nobelprize.org/prizes/medicine/2023/kariko/facts/"),
+    source("Nobel press release", "https://www.nobelprize.org/prizes/medicine/2023/press-release/"),
+    source(
+      "University of Pennsylvania profile",
+      "https://www.pennmedicine.org/news/news-releases/2023/october/katalin-kariko-and-drew-weissman-win-2023-nobel-prize-in-medicine",
+    ),
+  ],
+};

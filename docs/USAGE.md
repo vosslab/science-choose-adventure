@@ -1,109 +1,127 @@
-# USAGE.md
+# Usage
 
-How to run the tools in this repository.
+Science Career Survival is a static TypeScript browser game. It builds to
+`dist/` and runs locally from the generated files.
 
-## reset_repo.py
+## Play loop
 
-`reset_repo.py` is the bootstrap entry point for a new consumer repo cloned from this
-template. It runs an interactive interview (project type, code license, docs license,
-PyPI intent, stage, commit), writes the `REPO_TYPE` marker, installs license files,
-seeds `pyproject.toml` when PyPI is requested, runs propagation, and removes
-template-meta paths.
+The game opens with a career-sorting prologue. Each prologue choice adds routing
+weight toward one of the five launch paths:
 
-### Normal use (interactive)
+- Jennifer Doudna
+- Rosalind Franklin
+- Marie Curie
+- Alexander Fleming
+- Katalin Kariko
 
-```bash
-source source_me.sh && python3 reset_repo.py
-```
+After routing, the player makes paired choices through that scientist's career
+arc. Choices move one or more stats. A run ends with a legacy outcome when the
+path completes, or with a collapse ending if a stat reaches either extreme.
 
-The script interviews you in your terminal. No flags are required for normal use.
+The interface accepts:
 
-### CLI flags
+- Mobile swipe left or right.
+- Touch, click, or button activation.
+- Left arrow or `A` for the left choice.
+- Right arrow or `D` for the right choice.
 
-| Flag | Description |
-| --- | --- |
-| `--config <file>` | Supply interview answers from a JSON file (testing/reproducibility mode) |
-| `--dry-run` | Log planned actions without writing any files |
-| `-h` | Show help and exit |
+## The four Cs
 
-### Config mode (testing/reproducibility interface)
+The four stats model career pressure rather than simple success points:
 
-`--config` is intended for automated testing and reproducible resets, not for
-routine human use. Pass a JSON file with the interview answers:
+- Credibility: trust from peers, institutions, and the public.
+- Curiosity: willingness to follow hard questions and evidence.
+- Cash: resources, patronage, institutions, and practical support.
+- Care: attention to people, consequences, safety, and personal cost.
 
-```bash
-source source_me.sh && python3 reset_repo.py --config my_config.json
-```
+Low and high extremes are both dangerous. The goal is not to maximize every stat;
+the goal is to keep the career alive while making choices that fit the path.
+Each visible meter has 10 steps, so players get more feedback than a simple
+low/steady/high label without seeing the hidden 0-100 engine value.
 
-Config mode is non-interactive: the script reads answers from the file and proceeds
-without prompting. This replaces the interactive interview for the run.
+## Progression and reset
 
-#### JSON schema
+The browser stores progress in `localStorage` under
+`science_career_survival:v1`. The save stores the active phase, route scores,
+stats, current path position, and unlocked extras.
 
-| Key | Required | Values | Notes |
-| --- | --- | --- | --- |
-| `project_type` | YES | `python` / `p`, `typescript` / `t`, `rust` / `r`, `other` / `o` | Short alias or full token |
-| `code_license` | YES | SPDX identifier or alias (e.g. `MIT`, `m`, `GPL-3.0`, `g`) | Resolved via `resolve_license` |
-| `docs_license` | no | SPDX identifier or alias | Default: `CC-BY-4.0` |
-| `pypi` | no | `true` / `false` | Default: `false`; Python-only |
-| `stage` | no | `true` / `false` | Default: `true` |
-| `commit` | no | `true` / `false` | Default: `false` |
+Core launch paths are always available through the prologue. Completing a run can
+unlock extras for that scientist, including source notes shown on ending screens.
 
-#### Minimal example
+Use the in-game restart control to clear the save slot and return to a fresh
+prologue. Browser developer tools can also clear site data or remove the
+`science_career_survival:v1` local storage entry.
 
-```json
-{
-  "project_type": "python",
-  "code_license": "GPL-3.0"
-}
-```
+## Source material
 
-#### Full example
+The folder [data/science_career_paths/](../data/science_career_paths/) contains
+local path drafts and source material for content work. Treat that folder as the
+working source-reference area for this repo; do not describe it as public
+documentation unless the project intentionally makes that claim elsewhere.
 
-```json
-{
-  "project_type": "typescript",
-  "code_license": "MIT",
-  "docs_license": "CC-BY-4.0",
-  "stage": false,
-  "commit": false
-}
-```
+Runtime game content is authored in TypeScript. The source drafts inform the
+cards, motifs, endings, and source notes, but the browser does not load Markdown
+draft files at runtime.
 
-### Folder-name guard
+## Card authoring
 
-The script refuses to run when the repo root directory is named exactly
-`starter-repo-template`. This protects the template development checkout from
-accidental destruction.
+Each playable path should follow the existing content standard:
 
-If you see this error, clone or rename the repo to your project name first:
+- Use historically inspired pressure, not strict biography.
+- Keep satire aimed at institutions, incentives, committees, funding systems,
+  media pressure, and career absurdity.
+- Make specific historical claims only when source notes cover them.
+- Keep every card to exactly two choices.
+- Give each choice at least one stat effect.
+- Cover the arc beats: entry, pressure, breakthrough, translation, and legacy.
+- Provide all ending types for each path.
+- Include 3 to 5 source notes per path.
+- Include at least 3 scientist-specific cards per path.
+- Keep the four Cs in tension instead of making one obviously correct route.
 
-```
-This repo is named starter-repo-template. Clone or rename it to the consumer project name before running reset.
-```
+Source notes should point to stable, reputable references and should support the
+specific historical claims used in the cards. A source note is an unlockable
+reader aid, not a citation for every fictionalized line.
 
-The guard checks the folder name only; it does not inspect remotes or origin URLs.
+## Build and serve
 
-### Outside a git repo
-
-Running `reset_repo.py` outside a git repository exits with a clear message
-instead of a raw subprocess traceback.
-
-## E2E test harness
-
-For the clone-based reset E2E harness (LOCAL and REMOTE modes), see
-[E2E_TESTS.md](E2E_TESTS.md) and the inline documentation in
-`tests/meta/e2e/e2e_reset_routing.py`. The harness is template-meta:
-it lives under `tests/meta/e2e/` and is removed by reset.
-
-Run all offline E2E tests:
+Install dependencies:
 
 ```bash
-bash tests/meta/e2e/run_all.sh
+npm install
 ```
 
-Run a single E2E test:
+Run the full local check:
 
 ```bash
-source source_me.sh && python3 tests/meta/e2e/e2e_reset_routing.py
+npm run check
+```
+
+Build the static site:
+
+```bash
+npm run build
+```
+
+Serve the built game:
+
+```bash
+npm run serve
+```
+
+The build writes `dist/index.html`, `dist/main.js`, `dist/style.css`, and
+`dist/.nojekyll`.
+
+## Tests
+
+Run the browser smoke test after building:
+
+```bash
+npm run test:playwright
+```
+
+Run the Markdown link check through the repo Python environment:
+
+```bash
+source source_me.sh && python3 -m pytest tests/test_markdown_links.py
 ```

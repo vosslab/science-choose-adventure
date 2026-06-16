@@ -309,8 +309,8 @@ a {
      eyebrow. Aligning to the top with content-driven height removes that void. */
   display: grid;
   align-content: start;
-  gap: 16px;
-  padding: clamp(20px, 6vw, 44px);
+  gap: 8px;
+  padding: clamp(12px, 3vw, 22px) clamp(18px, 5vw, 36px);
   border: 2px solid color-mix(in srgb, var(--ink) 20%, transparent);
   border-radius: 8px;
   background: var(--paper);
@@ -406,7 +406,7 @@ a {
   padding: 16px 18px;
   opacity: 0;
   pointer-events: none;
-  font-weight: 850;
+  font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.02em;
 }
@@ -449,14 +449,6 @@ a {
 .eyebrow {
   margin: 0;
   color: var(--accent);
-}
-
-.card__title {
-  margin: 0;
-  max-width: 18ch;
-  font-size: clamp(2rem, 11vw, 4rem);
-  line-height: 1;
-  letter-spacing: 0;
 }
 
 .card__text {
@@ -527,7 +519,7 @@ a {
 
 .choice-button__label {
   font-size: 1.02rem;
-  font-weight: 850;
+  font-weight: 900;
   line-height: 1.15;
 }
 
@@ -692,7 +684,7 @@ kbd {
 }
 
 .rationale__reason {
-  margin: 0 0 0 0;
+  margin: 0;
   line-height: 1.35;
   color: color-mix(in srgb, var(--ink) 88%, var(--paper));
 }

@@ -84,12 +84,12 @@ export type ThemePalette = {
 };
 
 // Neutral parchment theme used throughout the blind run, before the result reveal.
-export const PROLOGUE_THEME: ThemePalette = {
+export const NEUTRAL_THEME: ThemePalette = {
   paper: "#fbf8ef",
   ink: "#17211f",
   accent: "#a33a2d",
   glow: "rgba(23, 33, 31, 0.16)",
-  motif: "Sorting the career route",
+  motif: "Your choices reveal the shape of a career",
 };
 
 // One palette per scientist, applied at the result reveal.
@@ -182,8 +182,8 @@ export function statBand(value: number): StatBand {
 //   step <= LOW_BAD_STEP   (value <= 20) reads as "bad" (red).
 //   step <= LOW_WARN_STEP  (value 21-40) reads as "reaching low" (amber).
 //   anything higher reads as fine, with high values treated as good.
-export const LOW_BAD_STEP = 2;
-export const LOW_WARN_STEP = 4;
+const LOW_BAD_STEP = 2;
+const LOW_WARN_STEP = 4;
 
 // Number of cards drawn in a single blind run before the resemblance reveal.
 export const RUN_LENGTH = 12;

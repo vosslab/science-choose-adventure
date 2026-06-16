@@ -46,9 +46,48 @@
 
 ### Fixes and Maintenance
 
+- Restored the dead choice-effect pipeline so the Reigns-style meter glow fires
+  again. The run `VisibleCard` in `src/engine.ts` now carries a direction-only
+  `choiceEffects: [left, right]` (new `ChoiceEffectView` type, magnitude
+  dropped), sourced from the same `drawNextCard(state)` draw that `runChoice()`
+  commits, so the previewed glow always matches the applied effect.
+  `currentChoicesWithEffects()` in `src/ui_renderer.ts` now fills each
+  `ChoiceView.effects` from `choiceEffects` instead of `[]`, so
+  `effectsToData()` encodes real `stat:direction` strings into
+  `card.dataset.left`/`right` (drag glow via `parseSideEffects`) and
+  `previewEffects` lights meters on hover/focus. Dropped the now-unused
+  `renderEffectTags` and its on-button text so the run layout is unchanged
+  (still magnitude hint only, no per-stat tag text). The glow exposes only stat
+  up/down, never scientist identity.
 - Fixed the drag answer banner overlapping the prompt by pinning it to the card
   top and dimming the prompt while a side is held; capped drag travel so the
   card stays on screen.
+- Tightened card vertical padding and gap in `src/style.css` so the card hugs
+  its text content; reduced `.card` padding and `.card__body` gap to keep the
+  prompt, choice buttons, and rationale compact on all viewports.
+- Removed dead `|| entry.band === "high"` arm from `isStrainArray` in
+  `src/storage.ts`; `StrainLine` declares `band: "low"` and `strainLines()`
+  only emits "low", so high-band strain no longer exists in the model. Updated
+  the surrounding comment to state that the guard accepts well-shaped low-band
+  strain entries and that high-band strain is not a valid save value.
+- Patch: Removed orphaned `.card__title` CSS rule (no emitter in src); changed
+  `font-weight: 850` to `font-weight: 900` in `.card__edge` and
+  `.choice-button__label` (850 is out of the valid CSS range and browsers
+  clamp it); collapsed `margin: 0 0 0 0` to `margin: 0` in `.rationale__reason`.
+- Removed module-level mutable `let coreCardCounter` from `src/content.ts`;
+  `coreCard()` now takes an explicit `n: number` (1-based) first parameter and
+  each of the 21 call sites passes its literal index. Generated ids are
+  unchanged (core_1..core_21). Eliminates non-deterministic re-import risk.
+- Renamed `PROLOGUE_THEME` to `NEUTRAL_THEME` in `src/config.ts` and updated
+  the importer in `src/ui_renderer.ts`; changed the `motif` value from
+  "Sorting the career route" to "Your choices reveal the shape of a career" to
+  suit the blind-run phase where no sorting is implied.
+- Removed `export` from `LOW_BAD_STEP` and `LOW_WARN_STEP` in `src/config.ts`;
+  both constants are only used inside `lowRisk()` in the same file and were
+  never imported elsewhere.
+- Deleted the module-level `STAT_ORDER` constant from `src/ui_renderer.ts`
+  (duplicate of `STAT_IDS` from config.ts); replaced its single use in
+  `renderStats()` with `STAT_IDS` directly.
 
 ### Decisions and Failures
 
@@ -58,6 +97,10 @@
 
 ### Developer Tests and Notes
 
+- Added five comment-only edits to `src/engine.ts` (no logic changes): clarified
+  the mulberry32 bit-mix steps, the matchExplanation graft, the weightedPick
+  caller-guard note, the choose() result-phase defensive-fallback comment, and the
+  StrainLine band field note (band is always "low" in the current model).
 - The launch content is grounded in `data/science_career_paths/` drafts for
   Jennifer Doudna, Rosalind Franklin, Marie Curie, Alexander Fleming, and
   Katalin Kariko.
@@ -68,6 +111,9 @@
 - Patch: Added Playwright coverage for the 10-step four-C meter display.
 - Rewrote the desktop Playwright test: a plain card click does not choose, while
   a horizontal card drag does.
+- Pruned 8 per-field content-contract tests from `tests/test_content_contracts.mjs`
+  that were subsumed by the `validateContent()` integration check; the 5 remaining
+  tests cover the full contract surface without redundant field-level assertions.
 
 ## 2026-06-15
 
@@ -114,6 +160,24 @@
 - Run progress eyebrow shows "Question k of 12" (neutral, no scientist hint).
 - Flavor cards injected only after a hidden internal leader clears `FLAVOR_MIN_MARGIN`;
   injection frequency capped by `FLAVOR_EVERY` to limit convergence.
+- Reworked the four-C meters to an asymmetric color model matching the no-lose design:
+  steps 1-2 red (low/bad), steps 3-4 amber (getting low), steps 5-10 neutral-to-good
+  (high reads as a strength, never a warning). Previously high values were flagged amber
+  like a failure.
+- Replaced the single "Care help" glossary toggle with hover tooltips (title + aria-label)
+  on all four stat meters, each defining its stat.
+- Strain/low-pressure texture now surfaces only for stats running low; high stats never
+  trigger the texture.
+
+### Fixes and Maintenance
+
+- Fixed excess run-phase whitespace: the card now sizes to its content instead of
+  reserving a tall fixed-height box with vertically centered short content; removed the
+  forced card min-height and the centering void.
+- Added intent comments to parseSideEffects, inner drag closures (clearGlow,
+  setGlow, setEdgeOpacity, resetCardVisuals, finishDrag), and event listener
+  blocks in src/input_controller.ts.
+- Added commit-closure intent comment in src/main.ts.
 
 ### Removals and Deprecations
 
@@ -122,6 +186,11 @@
   `ARC_BEATS` from `src/config.ts`.
 - Removed `prologueChoice`, `pathChoice`, `chooseScientist`, `collapseReason`,
   `selectEndingType`, and `routeScores` from `src/engine.ts`.
+- Removed the stability warning banner and its "about to break the run" / "drifting
+  toward an edge" wording; removed the legend's "too high"/"ends the run" language;
+  all were collapse-era artifacts inconsistent with the no-lose model.
+- Removed `DANGER_THRESHOLD_HIGH` and the high-band `EXTREME_BAND_TEXTURE` entries;
+  `LOW_PRESSURE_TEXTURE` replaces them (low-only).
 
 ### Decisions and Failures
 
@@ -134,6 +203,9 @@
   raw Euclidean distances are not shown to the player by default.
 - Decided that old v1 saves start fresh (no migration); the in-game state has no
   user data worth preserving across a model change.
+- Adopted the principle that low is the only concerning direction for all four Cs while
+  high is positive, per user direction and the "fix the design, not the symptom" core
+  philosophy; the danger subsystem was removed rather than recolored.
 
 ### Developer Tests and Notes
 
@@ -147,3 +219,11 @@
 - Updated `tests/playwright/game_smoke.spec.ts`: blind-run loop for `RUN_LENGTH`
   answers; asserts no scientist name appears mid-run; asserts "You most resemble" and a
   scientist name appear only after the final answer.
+- Replaced hardcoded count literals in game_smoke.spec.ts with constants from
+  src/config: `.stat__meter` uses `STAT_IDS.length`, ranking items use
+  `SCIENTIST_IDS.length`.
+- Added Playwright assertion that `.stat__segment` count equals
+  `STAT_IDS.length * STAT_STEP_COUNT` (covers the 4x10 meter-segment criterion).
+- Doc fixes: updated low-only strain wording in docs, added meter-color and tooltip
+  notes, rewrote NEWS entries in past tense, updated FILE_FORMATS to document band as
+  low-only, and cleaned up README prose.

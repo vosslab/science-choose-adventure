@@ -42,6 +42,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, value));
 }
 
+// Decodes the "stat:direction,..." string produced by effectsToData in ui_renderer.ts.
 function parseSideEffects(encoded: string | undefined): readonly { stat: string; rise: boolean }[] {
   if (encoded === undefined || encoded.length === 0) {
     return [];
@@ -61,6 +62,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
   let busy = false;
   const glowing = new Set<HTMLElement>();
 
+  // Remove rise/fall highlights from all meters that were lit during the last drag.
   function clearGlow(): void {
     for (const meter of glowing) {
       meter.classList.remove("stat__meter--rise", "stat__meter--fall");
@@ -68,6 +70,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     glowing.clear();
   }
 
+  // Apply rise/fall highlight to each meter affected by the hovered choice side.
   function setGlow(side: "left" | "right"): void {
     if (session === undefined) {
       return;
@@ -84,6 +87,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     }
   }
 
+  // Fade the left or right card edge in proportion to how far the card has been dragged.
   function setEdgeOpacity(dx: number, commitPixels: number): void {
     if (session === undefined) {
       return;
@@ -98,6 +102,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     }
   }
 
+  // Clear all drag feedback (glow, edge opacity, active classes) without committing a choice.
   function resetCardVisuals(): void {
     if (session === undefined) {
       return;
@@ -111,6 +116,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     session = undefined;
   }
 
+  // Begin a drag session when the pointer lands on a draggable card (not on interactive children).
   root.addEventListener("pointerdown", (event) => {
     if (busy || session !== undefined) {
       return;
@@ -138,6 +144,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     card.classList.remove("card--spring");
   });
 
+  // Track pointer movement: translate and tilt the card, update edge glow, and update meter highlights.
   root.addEventListener("pointermove", (event) => {
     if (session === undefined || event.pointerId !== session.pointerId) {
       return;
@@ -161,6 +168,7 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     }
   });
 
+  // Evaluate the completed drag: commit a choice if past the threshold, otherwise spring back.
   function finishDrag(event: PointerEvent): void {
     if (session === undefined || event.pointerId !== session.pointerId) {
       return;
@@ -194,9 +202,11 @@ export function attachInputController(root: HTMLElement, handlers: InputHandlers
     endDrag();
   }
 
+  // Finish the drag on pointer release or cancel (touch interrupted by system gesture, etc.).
   root.addEventListener("pointerup", finishDrag);
   root.addEventListener("pointercancel", finishDrag);
 
+  // Keyboard handler: arrow keys and A/D choose left/right; R restarts; Escape resets.
   window.addEventListener("keydown", (event) => {
     if (isTextInput(event.target)) {
       return;

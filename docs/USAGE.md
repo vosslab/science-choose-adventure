@@ -32,12 +32,17 @@ The four stats model career pressure rather than simple success points:
 Stats start at 50 and clamp between 0 and 100. Each meter has 10 visible steps.
 There is no win or lose condition; no stat threshold ends the run.
 
+Meter color follows a pressure model: steps 1-2 display in red (low), steps 3-4
+in amber (getting low), and steps 5-10 in a neutral-to-strong range. A high stat
+is treated as a strength, never a warning. Each stat meter carries a hover
+tooltip with that stat's definition.
+
 ## Soft texture wording
 
-When a stat drifts into an extreme band (very low or very high) the game
-surfaces a short texture line below the meters, for example "the lab is fraying
-for lack of funds". This describes career strain without threatening the run.
-Texture lines appear during the run and feed the end reveal explanation.
+When a stat runs low the game surfaces a short texture line below the meters,
+for example "the lab is fraying for lack of funds". This describes career strain
+without threatening the run. The same stat pressures are reflected in the end
+reveal explanation.
 
 ## End reveal
 

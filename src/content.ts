@@ -49,16 +49,15 @@ function choice(label: string, effects: readonly Effect[]): Choice {
 // Each card carries probes (stats it is about); every probed stat is affected
 // by at least one choice, per the probe-subset-of-effects rule enforced by
 // content validation.
-let coreCardCounter = 0;
 function coreCard(
+  n: number,
   prompt: string,
   first: Choice,
   second: Choice,
   probes: readonly StatId[],
 ): CareerCard {
-  coreCardCounter += 1;
   const nextCard: CareerCard = {
-    id: cardId(`core_${coreCardCounter}`),
+    id: cardId(`core_${n}`),
     prompt,
     choices: [first, second],
     probes,
@@ -68,6 +67,7 @@ function coreCard(
 
 export const CORE_DECK: readonly CareerCard[] = [
   coreCard(
+    1,
     "A funder offers a large grant if you promise results on their fast timeline.",
     choice("Take the money and the deadline", [
       effect("cash", "up", "large"),
@@ -80,6 +80,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["cash", "care"],
   ),
   coreCard(
+    2,
     "Your data quietly contradict the hypothesis your whole project is built on.",
     choice("Report the contradiction openly", [
       effect("credibility", "up", "large"),
@@ -92,6 +93,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "curiosity"],
   ),
   coreCard(
+    3,
     "A senior colleague wants first authorship on work you led.",
     choice("Insist on fair credit", [
       effect("credibility", "up", "medium"),
@@ -104,6 +106,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "care"],
   ),
   coreCard(
+    4,
     "A risky experiment could be a breakthrough or a dead end with months lost.",
     choice("Run the risky experiment", [
       effect("curiosity", "up", "large"),
@@ -116,6 +119,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["curiosity", "cash"],
   ),
   coreCard(
+    5,
     "A popular talk invitation would eat a week of lab time but reach thousands.",
     choice("Give the public talk", [
       effect("care", "up", "medium"),
@@ -128,6 +132,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "curiosity"],
   ),
   coreCard(
+    6,
     "A rival team may publish the same finding within weeks.",
     choice("Rush a thinner paper out first", [
       effect("cash", "up", "small"),
@@ -140,6 +145,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "cash"],
   ),
   coreCard(
+    7,
     "A struggling junior researcher needs hours of mentoring you do not have.",
     choice("Make the time to mentor them", [
       effect("care", "up", "large"),
@@ -152,6 +158,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "curiosity"],
   ),
   coreCard(
+    8,
     "A flashy result would impress reviewers, but one control is still missing.",
     choice("Add the slow control first", [
       effect("credibility", "up", "medium"),
@@ -164,6 +171,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "cash"],
   ),
   coreCard(
+    9,
     "An odd side observation has nothing to do with your funded goal.",
     choice("Chase the curious tangent", [
       effect("curiosity", "up", "large"),
@@ -176,6 +184,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["curiosity", "cash"],
   ),
   coreCard(
+    10,
     "A company will fund your lab if you keep the method confidential.",
     choice("Take the deal and stay quiet", [
       effect("cash", "up", "large"),
@@ -188,6 +197,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["cash", "care"],
   ),
   coreCard(
+    11,
     "A reporter wants a bold quote that overstates what your study shows.",
     choice("Correct the overstatement", [
       effect("credibility", "up", "medium"),
@@ -200,6 +210,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "cash"],
   ),
   coreCard(
+    12,
     "Faster lab shortcuts would skip some safety checks.",
     choice("Keep every safety check", [
       effect("care", "up", "large"),
@@ -212,6 +223,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "cash"],
   ),
   coreCard(
+    13,
     "A reviewer demands months of extra experiments you doubt are needed.",
     choice("Do the extra work thoroughly", [
       effect("credibility", "up", "medium"),
@@ -224,6 +236,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "curiosity"],
   ),
   coreCard(
+    14,
     "A collaboration offer would share credit but double your reach.",
     choice("Join forces and share credit", [
       effect("care", "up", "medium"),
@@ -236,6 +249,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "credibility"],
   ),
   coreCard(
+    15,
     "A boring but solid dataset sits next to a wild, uncertain idea.",
     choice("Dig into the wild idea", [
       effect("curiosity", "up", "large"),
@@ -248,6 +262,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["curiosity", "credibility"],
   ),
   coreCard(
+    16,
     "Equipment failed and a costly repair would drain this year's budget.",
     choice("Pay for the proper repair", [
       effect("care", "up", "small"),
@@ -260,6 +275,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "cash"],
   ),
   coreCard(
+    17,
     "A volunteer outreach program wants you to teach kids on weekends.",
     choice("Commit to the outreach", [
       effect("care", "up", "large"),
@@ -272,6 +288,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["care", "curiosity"],
   ),
   coreCard(
+    18,
     "Your bold preliminary claim is getting attention before it is confirmed.",
     choice("Walk it back until confirmed", [
       effect("credibility", "up", "medium"),
@@ -284,6 +301,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["credibility", "cash"],
   ),
   coreCard(
+    19,
     "A grant rewards quantity of papers over depth of any single study.",
     choice("Split the work into many papers", [
       effect("cash", "up", "medium"),
@@ -296,6 +314,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["cash", "credibility"],
   ),
   coreCard(
+    20,
     "An unexpected anomaly tempts you away from a nearly finished project.",
     choice("Follow the anomaly now", [
       effect("curiosity", "up", "large"),
@@ -308,6 +327,7 @@ export const CORE_DECK: readonly CareerCard[] = [
     ["curiosity", "care"],
   ),
   coreCard(
+    21,
     "A whistleblower role would expose sloppy data but burn key relationships.",
     choice("Report the bad data", [
       effect("credibility", "up", "large"),

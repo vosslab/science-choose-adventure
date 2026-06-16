@@ -1,5 +1,5 @@
 import {
-  PROLOGUE_THEME,
+  NEUTRAL_THEME,
   RUN_LENGTH,
   SCIENTIST_CONFIG,
   STAT_CONFIG,
@@ -35,8 +35,6 @@ type ChoiceView = {
   readonly effects: readonly SideEffect[];
 };
 
-const STAT_ORDER: readonly StatId[] = ["credibility", "curiosity", "cash", "care"];
-
 function removeChildren(node: HTMLElement): void {
   while (node.firstChild !== null) {
     node.firstChild.remove();
@@ -62,9 +60,10 @@ function appendText(parent: HTMLElement, text: string): void {
   parent.append(document.createTextNode(text));
 }
 
-// Build ChoiceView pairs for the run phase. VisibleCard exposes choice labels only; per-choice
-// effect data for the drag controller is encoded in card.dataset.left/right by the run renderer,
-// so effect arrays here are empty by design.
+// Build ChoiceView pairs for the run phase. The engine's run VisibleCard carries direction-only
+// effects per choice in choiceEffects ([left, right]); those drive the meter glow (encoded into
+// card.dataset.left/right) and the hover/focus button preview. Magnitude stays hidden during the
+// run phase, so each ChoiceView keeps magnitude blank.
 function currentChoicesWithEffects(
   state: Extract<GameState, { phase: "run" }>,
 ): readonly [ChoiceView, ChoiceView] | undefined {
@@ -76,12 +75,12 @@ function currentChoicesWithEffects(
     {
       label: visibleCard.choices[0],
       magnitude: "",
-      effects: [],
+      effects: visibleCard.choiceEffects[0],
     },
     {
       label: visibleCard.choices[1],
       magnitude: "",
-      effects: [],
+      effects: visibleCard.choiceEffects[1],
     },
   ];
   return choices;
@@ -94,7 +93,7 @@ function activeTheme(state: GameState): ThemePalette {
   if (state.phase === "result") {
     return scientistTheme(state.scientistId);
   }
-  return PROLOGUE_THEME;
+  return NEUTRAL_THEME;
 }
 
 function applyTheme(shell: HTMLElement, theme: ThemePalette): void {
@@ -145,7 +144,7 @@ function meterTone(value: number): MeterTone {
 function renderStats(stats: StatValues): HTMLElement {
   const wrapper = makeElement("section", "stats", undefined);
   wrapper.setAttribute("aria-label", "Four career pressures");
-  for (const statId of STAT_ORDER) {
+  for (const statId of STAT_IDS) {
     const statConfig = STAT_CONFIG[statId];
     const step = statStep(stats[statId]);
     // Meter color follows the low-pressure tier (bad/warn/ok), not the symmetric band:
@@ -230,18 +229,6 @@ function renderControls(handlers: RenderHandlers): HTMLElement {
   return controls;
 }
 
-function renderEffectTags(effects: readonly SideEffect[]): HTMLElement {
-  // Local effect hint on the button: which pressures move and which way (no magnitude).
-  const wrapper = makeElement("span", "choice-button__effects", undefined);
-  for (const effect of effects) {
-    const direction = effect.direction === "up" ? "up" : "down";
-    const tagClass = `effect-tag effect-tag--${direction}`;
-    const tag = makeElement("span", tagClass, `${STAT_CONFIG[effect.stat].label} ${direction}`);
-    wrapper.append(tag);
-  }
-  return wrapper;
-}
-
 function renderChoiceButton(
   choice: ChoiceView,
   index: 0 | 1,
@@ -275,10 +262,12 @@ function renderChoiceButton(
     choice.magnitude.length > 0
       ? `${hint} / ${key} / ${choice.magnitude} effect`
       : `${hint} / ${key}`;
+  // No visible per-stat effect tags on the run button: the run phase shows only the magnitude
+  // hint, and choice.effects feeds the meter glow (previewEffects above and card.dataset via
+  // effectsToData), not on-button text. Adding tag text here would change the run layout.
   button.append(
     makeElement("span", "choice-button__direction", index === 0 ? "Left" : "Right"),
     makeElement("span", "choice-button__label", choice.label),
-    renderEffectTags(choice.effects),
     makeElement("span", "choice-button__meta", metaText),
   );
   return button;

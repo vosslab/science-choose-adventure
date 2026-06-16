@@ -1,6 +1,6 @@
 # Science Career Survival
 
-A static TypeScript browser game where your choices across 12 career dilemmas reveal which of five historically inspired scientists your career style most resembles. Pilot of the resemblance redesign.
+A static TypeScript browser game where your choices across 12 career dilemmas reveal which of five historically inspired scientists your career style most resembles, built on a shared, scientist-neutral deck.
 
 ## Quick start
 

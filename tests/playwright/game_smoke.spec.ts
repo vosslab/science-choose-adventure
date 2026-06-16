@@ -4,7 +4,13 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
-import { RUN_LENGTH, SCIENTIST_CONFIG } from "../../src/config";
+import {
+  RUN_LENGTH,
+  SCIENTIST_CONFIG,
+  SCIENTIST_IDS,
+  STAT_IDS,
+  STAT_STEP_COUNT,
+} from "../../src/config";
 
 type StaticAsset = {
   readonly fileName: string;
@@ -111,8 +117,10 @@ test("blind run loop: no name during run, reveal after final answer, restart ret
       );
     }
 
-    // Meters: one per stat ID (4 total).
-    await expect(page.locator(".stat__meter")).toHaveCount(4);
+    // Meters: one per stat ID.
+    await expect(page.locator(".stat__meter")).toHaveCount(STAT_IDS.length);
+    // Each meter renders STAT_STEP_COUNT segments (4 meters x 10 segments each).
+    await expect(page.locator(".stat__segment")).toHaveCount(STAT_IDS.length * STAT_STEP_COUNT);
 
     // Initial eyebrow shows "Question 1 of <RUN_LENGTH>".
     await expect(page.locator(".eyebrow")).toContainText(`Question 1 of ${RUN_LENGTH}`);
@@ -167,9 +175,9 @@ test("blind run loop: no name during run, reveal after final answer, restart ret
       );
     }
 
-    // Ranking list must contain exactly 5 items, with the first marked as the match.
+    // Ranking list must contain one item per scientist, with the first marked as the match.
     const rankingItems = page.locator("ol.ranking__list li.ranking__item");
-    await expect(rankingItems).toHaveCount(5);
+    await expect(rankingItems).toHaveCount(SCIENTIST_IDS.length);
     await expect(rankingItems.first()).toHaveClass(/ranking__item--match/);
 
     // Every ranking item should contain a scientist name (names only, no raw distances).

@@ -13,6 +13,7 @@ import {
   STAT_IDS,
   lowRisk,
   statBand,
+  type EffectDirection,
   type ScientistId,
   type StatId,
 } from "./config";
@@ -21,9 +22,10 @@ import { CORE_DECK, FLAVOR_POOL, type CareerCard, type Choice } from "./content"
 export type StatValues = Record<StatId, number>;
 
 // One soft-tension texture line for a stat that is running low. Low is the only genuine
-// pressure in the no-lose resemblance model, so every emitted strain line carries
-// band "low"; the field is retained for storage-shape compatibility. Derived from stats
-// on every render and never persisted as a separate source of truth.
+// pressure in the no-lose resemblance model, so strainLines only ever emits band "low";
+// band is always "low" in the current model and the field exists only for storage-shape
+// compatibility. Derived from stats on every render and never persisted as a separate source
+// of truth.
 export type StrainLine = {
   readonly stat: StatId;
   readonly band: "low";
@@ -63,11 +65,23 @@ export type GameState =
       readonly unlockedExtras: readonly string[];
     };
 
+// Direction-only view of one choice's effect on a single stat. Magnitude is intentionally
+// dropped here: the run UI lights affected meters up or down but never exposes effect size,
+// keeping the no-magnitude rule of the run phase intact.
+export type ChoiceEffectView = {
+  readonly stat: StatId;
+  readonly direction: EffectDirection;
+};
+
 export type VisibleCard =
   | {
       readonly kind: "run";
       readonly prompt: string;
       readonly choices: readonly [string, string];
+      // Per-choice direction-only effects for the two choices, in [left, right] order. These
+      // drive the Reigns-style meter glow during a drag and the hover/focus button preview.
+      // Magnitude is omitted by design (see ChoiceEffectView).
+      readonly choiceEffects: readonly [readonly ChoiceEffectView[], readonly ChoiceEffectView[]];
       readonly strain: readonly StrainLine[];
     }
   | {
@@ -102,6 +116,7 @@ function mulberry32(seed: number): { readonly value: number; readonly nextSeed: 
   // Advance the 32-bit state by the golden-ratio increment.
   let a = (seed + 0x6d2b79f5) | 0;
   let t = a;
+  // Bit-mix the state through the standard mulberry32 nonlinear steps to produce a well-distributed float.
   t = Math.imul(t ^ (t >>> 15), t | 1);
   t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
   const value = ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -245,6 +260,7 @@ function matchExplanation(stats: StatValues): string {
     leadingPhrases.length === 0 ? lastPhrase : `${leadingPhrases.join(", ")} and ${lastPhrase}`;
   const firstPhrase = phrases[0] ?? "";
   const capitalizedFirst = firstPhrase.charAt(0).toUpperCase() + firstPhrase.slice(1);
+  // Graft the capitalized first phrase onto the already-joined string so the separators are not rebuilt.
   const restOfJoined =
     leadingPhrases.length === 0
       ? capitalizedFirst
@@ -299,8 +315,9 @@ function weightedPick(
     }
   }
   // chosen is set on the first iteration; the loop only runs for a non-empty candidate
-  // list (callers guard that). If floating-point slack leaves target >= 0, chosen holds
-  // the last candidate, so a draw never returns nothing.
+  // list. Callers return undefined before reaching here when the candidate list is empty,
+  // so at least one candidate always exists. If floating-point slack leaves target >= 0,
+  // chosen holds the last candidate, so a draw never returns nothing.
   if (chosen === undefined) {
     throw new Error("weightedPick called with an empty candidate list.");
   }
@@ -475,13 +492,26 @@ export function choose(state: GameState, choiceIndex: 0 | 1): GameState {
   if (state.phase === "run") {
     return runChoice(state, choiceIndex);
   }
-  // From the result screen, any choice restarts a fresh run.
+  // Defensive fallback: result-phase input is guarded in main.ts before reaching choose().
   return createInitialState();
 }
 
 // ============================================================================
 // Visible card
 // ============================================================================
+
+// Reduce a Choice to its direction-only effect views (stat + up/down), dropping magnitude.
+// Used to feed the run UI's meter glow and button preview without exposing effect size.
+function choiceEffectViews(choice: Choice): readonly ChoiceEffectView[] {
+  const views = choice.effects.map((choiceEffect) => {
+    const view: ChoiceEffectView = {
+      stat: choiceEffect.stat,
+      direction: choiceEffect.direction,
+    };
+    return view;
+  });
+  return views;
+}
 
 function runVisibleCard(state: Extract<GameState, { phase: "run" }>): VisibleCard {
   const drawn = drawNextCard(state);
@@ -494,10 +524,18 @@ function runVisibleCard(state: Extract<GameState, { phase: "run" }>): VisibleCar
     drawn.card.choices[0].label,
     drawn.card.choices[1].label,
   ];
+  // Direction-only effects for each choice, drawn from the SAME card runChoice() will apply
+  // (drawNextCard is a pure function of state), so the previewed glow always matches the
+  // committed effect. Magnitude is dropped here to honor the run-phase no-magnitude rule.
+  const choiceEffects: readonly [readonly ChoiceEffectView[], readonly ChoiceEffectView[]] = [
+    choiceEffectViews(drawn.card.choices[0]),
+    choiceEffectViews(drawn.card.choices[1]),
+  ];
   const card: VisibleCard = {
     kind: "run",
     prompt: drawn.card.prompt,
     choices,
+    choiceEffects,
     strain: state.strain,
   };
   return card;

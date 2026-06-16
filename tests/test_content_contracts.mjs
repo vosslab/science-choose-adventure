@@ -1,15 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import {
-  FLAVOR_MIN_MARGIN,
-  RUN_LENGTH,
-  SCIENTIST_IDS,
-  SCIENTIST_SIGNATURE,
-  STAT_IDS,
-} from "../src/config.ts";
-import { CORE_DECK, FLAVOR_POOL, SCIENTIST_SOURCE_NOTES } from "../src/content.ts";
-import { LEAK_TERM_DENYLIST, validateContent } from "../src/content_validation.ts";
+import { SCIENTIST_IDS } from "../src/config.ts";
+import { SCIENTIST_SOURCE_NOTES } from "../src/content.ts";
+import { validateContent } from "../src/content_validation.ts";
 import { loadGameState } from "../src/storage.ts";
 
 // ============================================================================
@@ -18,105 +12,6 @@ import { loadGameState } from "../src/storage.ts";
 test("release content satisfies all contracts (validateContent returns empty)", () => {
   const issues = validateContent();
   assert.deepEqual(issues, []);
-});
-
-// ============================================================================
-// Test b: core-deck structural floor
-// ============================================================================
-test("CORE_DECK has at least RUN_LENGTH cards (structural floor)", () => {
-  assert.ok(CORE_DECK.length >= RUN_LENGTH, `CORE_DECK has only ${CORE_DECK.length} cards`);
-});
-
-test("every stat is probed by at least 2 core cards", () => {
-  for (const stat of STAT_IDS) {
-    const count = CORE_DECK.filter((card) => card.probes.includes(stat)).length;
-    assert.ok(count >= 2, `stat "${stat}" is probed by only ${count} core card(s)`);
-  }
-});
-
-// ============================================================================
-// Test c: flavor pool covers every scientist
-// ============================================================================
-test("FLAVOR_POOL has at least one card for every scientist", () => {
-  for (const scientistId of SCIENTIST_IDS) {
-    const cards = FLAVOR_POOL[scientistId];
-    assert.ok(cards && cards.length > 0, `FLAVOR_POOL missing cards for "${scientistId}"`);
-  }
-});
-
-// ============================================================================
-// Test d: signature values in range and rationale non-empty
-// ============================================================================
-test("every scientist signature value is within [0, 100]", () => {
-  for (const scientistId of SCIENTIST_IDS) {
-    const sig = SCIENTIST_SIGNATURE[scientistId];
-    for (const stat of STAT_IDS) {
-      const val = sig.values[stat];
-      assert.ok(val >= 0 && val <= 100, `${scientistId} "${stat}" = ${val} out of [0,100]`);
-    }
-  }
-});
-
-test("every scientist signature has a non-empty rationale for each stat", () => {
-  for (const scientistId of SCIENTIST_IDS) {
-    const sig = SCIENTIST_SIGNATURE[scientistId];
-    for (const stat of STAT_IDS) {
-      const rationale = sig.rationale[stat];
-      assert.ok(
-        rationale && rationale.trim().length > 0,
-        `${scientistId} "${stat}" has empty rationale`,
-      );
-    }
-  }
-});
-
-test("scientist signatures are pairwise distinct by at least FLAVOR_MIN_MARGIN", () => {
-  const idList = [...SCIENTIST_IDS];
-  for (let i = 0; i < idList.length; i++) {
-    for (let j = i + 1; j < idList.length; j++) {
-      const idA = idList[i];
-      const idB = idList[j];
-      let sumSq = 0;
-      for (const stat of STAT_IDS) {
-        const diff = SCIENTIST_SIGNATURE[idA].values[stat] - SCIENTIST_SIGNATURE[idB].values[stat];
-        sumSq += diff * diff;
-      }
-      const dist = Math.sqrt(sumSq);
-      assert.ok(
-        dist >= FLAVOR_MIN_MARGIN,
-        `signatures for "${idA}" and "${idB}" too close (dist ${dist.toFixed(2)} < ${FLAVOR_MIN_MARGIN})`,
-      );
-    }
-  }
-});
-
-// ============================================================================
-// Test e: leak-term denylist -- no core or flavor prompt contains a leak term
-// ============================================================================
-test("no CORE_DECK prompt contains a leak term (case-insensitive)", () => {
-  for (const card of CORE_DECK) {
-    const lower = card.prompt.toLowerCase();
-    for (const term of LEAK_TERM_DENYLIST) {
-      assert.ok(
-        !lower.includes(term.toLowerCase()),
-        `CORE_DECK card "${card.id}" prompt contains leak term "${term}"`,
-      );
-    }
-  }
-});
-
-test("no FLAVOR_POOL prompt contains a leak term (case-insensitive)", () => {
-  for (const scientistId of SCIENTIST_IDS) {
-    for (const card of FLAVOR_POOL[scientistId]) {
-      const lower = card.prompt.toLowerCase();
-      for (const term of LEAK_TERM_DENYLIST) {
-        assert.ok(
-          !lower.includes(term.toLowerCase()),
-          `FLAVOR_POOL card "${card.id}" (${scientistId}) prompt contains leak term "${term}"`,
-        );
-      }
-    }
-  }
 });
 
 // ============================================================================

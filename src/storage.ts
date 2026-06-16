@@ -80,9 +80,9 @@ function isRankingArray(value: unknown): value is readonly RankingEntry[] {
   return everyEntry;
 }
 
-// Validate the strain array: each element must have a valid stat, band, and line string.
-// The strain array is always re-derived from stats on load, so this is a loose check
-// (accept any well-shaped array; we do not re-validate the text contents here).
+// Validate the strain array: each element must be a well-shaped low-band strain entry.
+// The engine type (StrainLine) declares band: "low" and strainLines() only ever emits
+// "low"; high-band strain no longer exists in the model and is not a valid save value.
 function isStrainArray(value: unknown): value is readonly StrainLine[] {
   if (!Array.isArray(value)) {
     return false;
@@ -92,7 +92,7 @@ function isStrainArray(value: unknown): value is readonly StrainLine[] {
       return false;
     }
     const hasStat = typeof entry.stat === "string" && STAT_IDS.some((id) => id === entry.stat);
-    const hasBand = entry.band === "low" || entry.band === "high";
+    const hasBand = entry.band === "low";
     const hasLine = typeof entry.line === "string";
     return hasStat && hasBand && hasLine;
   });

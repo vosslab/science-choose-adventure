@@ -22,6 +22,7 @@ function main(): void {
   const root = rootElement();
   let state: GameState = loadGameState(window.localStorage);
 
+  // Advance state, persist it, then re-render so the saved state and the display stay in sync.
   function commit(nextState: GameState): void {
     state = nextState;
     saveGameState(window.localStorage, state);

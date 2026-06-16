@@ -57,7 +57,7 @@ The save envelope is:
   answeredCount: number;
   askedIds: readonly string[];
   lastEffectMagnitude: string | undefined;
-  strain: readonly { stat: StatId; band: "low" | "high"; line: string }[];
+  strain: readonly { stat: StatId; band: "low"; line: string }[];
   unlockedExtras: readonly string[] }
 |
 { phase: "result";
@@ -69,7 +69,7 @@ The save envelope is:
   answeredCount: number;
   askedIds: readonly string[];
   lastEffectMagnitude: string | undefined;
-  strain: readonly { stat: StatId; band: "low" | "high"; line: string }[];
+  strain: readonly { stat: StatId; band: "low"; line: string }[];
   unlockedExtras: readonly string[] }
 ```
 
@@ -83,8 +83,8 @@ askedIds, lastEffectMagnitude, strain, unlockedExtras) plus the matched scientis
 full resemblance ranking (used to render the ordered name list without raw distances), and
 the plain-language explanation string.
 
-`strain` entries each have a `stat` (one of the four `StatId` values), a `band` (`"low"` or
-`"high"`), and a `line` string (the texture sentence). The `unlockedExtras` array holds
+`strain` entries each have a `stat` (one of the four `StatId` values), a `band` (`"low"`;
+high-band strain was removed with the no-lose model), and a `line` string (the texture sentence). The `unlockedExtras` array holds
 opaque token strings; the only token produced at present is `"{scientistId}:source_notes"`,
 added when the run transitions to the result phase.
 

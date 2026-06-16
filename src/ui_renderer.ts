@@ -548,7 +548,7 @@ export function render(root: HTMLElement, state: GameState, handlers: RenderHand
   // Run-only furniture (meter legend, input strip) describes the live decision loop, so it
   // is skipped on the result screen where there is no card to play. Per-stat meaning now
   // lives in each meter's tooltip, and the low-only strain lines below cover any pressure,
-  // so no separate stability banner or care-help block is needed.
+  // so no separate stability banner or per-stat help block is needed.
   if (state.phase === "run") {
     shell.append(renderLegend());
   }

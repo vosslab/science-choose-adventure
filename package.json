@@ -1,6 +1,6 @@
 {
-	"name": "__REPO_NAME__",
-	"version": "__REPO_VERSION__",
+	"name": "science-choose-adventure",
+	"version": "2026.06.0",
 	"type": "module",
 	"private": true,
 	"scripts": {

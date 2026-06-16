@@ -11,3 +11,18 @@ sdist/
 *.egg
 *.egg-info/
 site/
+
+# === TYPESCRIPT ===
+node_modules/
+_site/
+*.tsbuildinfo
+.eslintcache
+.prettiercache
+test-results/
+playwright-report/
+blob-report/
+coverage/
+meta.json
+stats.html
+
+

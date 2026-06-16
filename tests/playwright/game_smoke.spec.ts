@@ -108,32 +108,37 @@ test("built game supports buttons, keyboard, and restart", async ({ page }) => {
   }
 });
 
-test("desktop text selection does not choose an answer", async ({ page }) => {
+test("desktop card click does not choose, but a drag does", async ({ page }) => {
   const distDir = path.join(getRepoRoot(), "dist");
   const server = await startDistServer(distDir);
   try {
     await page.setViewportSize({ width: 1100, height: 760 });
     await page.goto(server.url);
 
-    const prompt = page.locator(".card__text").first();
-    await expect(prompt).toBeVisible();
-    const originalPrompt = await prompt.textContent();
-    if (originalPrompt === null) {
-      throw new Error("Expected prompt text before desktop drag regression.");
-    }
+    const card = page.locator(".card--draggable");
+    await expect(card).toBeVisible();
+    await expect(page.getByText("Each choice reveals only effect size.")).toBeVisible();
 
-    const promptBox = await prompt.boundingBox();
-    if (promptBox === null) {
-      throw new Error("Expected prompt bounding box before desktop drag regression.");
+    const cardBox = await card.boundingBox();
+    if (cardBox === null) {
+      throw new Error("Expected card bounding box before desktop drag.");
     }
+    const centerX = cardBox.x + cardBox.width / 2;
+    const centerY = cardBox.y + cardBox.height / 2;
 
-    await page.mouse.move(promptBox.x + 12, promptBox.y + promptBox.height / 2);
+    // A plain click on the card with no travel must not commit a choice.
+    await page.mouse.move(centerX, centerY);
     await page.mouse.down();
-    await page.mouse.move(promptBox.x + promptBox.width - 12, promptBox.y + promptBox.height / 2);
+    await page.mouse.up();
+    await expect(page.getByText("Each choice reveals only effect size.")).toBeVisible();
+
+    // A horizontal drag well past the commit threshold commits a choice.
+    await page.mouse.move(centerX, centerY);
+    await page.mouse.down();
+    await page.mouse.move(centerX + cardBox.width * 0.55, centerY, { steps: 12 });
     await page.mouse.up();
 
-    await expect(prompt).toHaveText(originalPrompt);
-    await expect(page.getByText("Each choice reveals only effect size.")).toBeVisible();
+    await expect(page.getByText(/Last choice had a .+ effect\./)).toBeVisible();
   } finally {
     await server.close();
   }

@@ -10,6 +10,16 @@
     sans-serif;
   background: #f3f0e7;
   color: #17211f;
+
+  /* Theme defaults; render() overrides these per path on .game-shell. */
+  --paper: #fbf8ef;
+  --ink: #17211f;
+  --accent: #a33a2d;
+  --glow: rgba(23, 33, 31, 0.16);
+
+  /* Fixed left/right choice colors (teal vs rust): colorblind-safe, theme-independent. */
+  --left: #1f6f7d;
+  --right: #c4572f;
 }
 
 * {
@@ -39,12 +49,12 @@ button {
 }
 
 a {
-  color: #0d6270;
+  color: var(--accent);
   font-weight: 700;
 }
 
 :focus-visible {
-  outline: 3px solid #c9412d;
+  outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -52,10 +62,13 @@ a {
   width: min(100%, 920px);
   min-height: 100vh;
   margin: 0 auto;
-  padding: 14px 12px 24px;
+  padding: 12px 12px 20px;
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
-  gap: 12px;
+  grid-template-rows: auto auto auto auto 1fr auto;
+  gap: 10px;
+  color: var(--ink);
+  background: radial-gradient(125% 78% at 50% -8%, var(--glow), transparent 62%);
+  transition: background 0.4s ease;
 }
 
 .game-header {
@@ -65,22 +78,31 @@ a {
 
 .heading-group {
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .game-title {
   margin: 0;
-  color: #17211f;
-  font-size: clamp(2rem, 12vw, 4.1rem);
-  line-height: 0.95;
+  color: var(--ink);
+  font-size: clamp(1.5rem, 6.5vw, 3.2rem);
+  line-height: 0.98;
   letter-spacing: 0;
 }
 
 .game-subtitle {
   margin: 0;
-  color: #3e504c;
+  color: color-mix(in srgb, var(--ink) 72%, var(--paper));
   font-size: 0.98rem;
   line-height: 1.35;
+}
+
+.game-motif {
+  margin: 0;
+  color: var(--accent);
+  font-size: 0.86rem;
+  font-weight: 800;
+  font-style: italic;
+  letter-spacing: 0.01em;
 }
 
 .utility-controls,
@@ -94,7 +116,7 @@ a {
 .primary-action,
 .secondary-action {
   min-height: 44px;
-  border: 2px solid #17211f;
+  border: 2px solid var(--ink);
   border-radius: 8px;
   padding: 10px 13px;
   font-weight: 800;
@@ -103,38 +125,38 @@ a {
 
 .utility-button,
 .secondary-action {
-  background: #ffffff;
-  color: #17211f;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .utility-button--quiet {
-  border-color: #62736f;
-  color: #344844;
+  border-color: color-mix(in srgb, var(--ink) 55%, var(--paper));
+  color: color-mix(in srgb, var(--ink) 80%, var(--paper));
 }
 
 .primary-action {
-  background: #17211f;
-  color: #ffffff;
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .utility-button:hover,
 .primary-action:hover,
 .secondary-action:hover {
-  border-color: #0d6270;
-  background: #0d6270;
+  border-color: var(--accent);
+  background: var(--accent);
   color: #ffffff;
 }
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
 }
 
 .stat {
   min-width: 0;
   display: grid;
-  gap: 5px;
+  gap: 4px;
 }
 
 .stat__label,
@@ -149,52 +171,112 @@ a {
   text-transform: uppercase;
 }
 
+.stat__label,
+.stat__status {
+  font-size: 0.62rem;
+}
+
 .stat__label {
-  color: #17211f;
+  color: var(--ink);
 }
 
 .stat__status,
 .effect-hint,
 .choice-button__meta {
-  color: #4b5d59;
+  color: color-mix(in srgb, var(--ink) 62%, var(--paper));
 }
 
 .stat__meter {
-	height: 15px;
-	display: grid;
-	grid-template-columns: repeat(10, minmax(0, 1fr));
-	gap: 2px;
+  height: 15px;
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 2px;
+  border-radius: 4px;
+  transition: box-shadow 0.15s ease;
 }
 
 .stat__segment {
-	border: 1px solid rgba(23, 33, 31, 0.24);
-	border-radius: 3px;
-	background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(23, 33, 31, 0.24);
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.78);
 }
 
 .stat__meter--low .stat__segment--active {
-	background: #b93d31;
-	border-color: #8f2e25;
+  background: #b93d31;
+  border-color: #8f2e25;
 }
 
 .stat__meter--steady .stat__segment--active {
-	background: #2f7d73;
-	border-color: #25645c;
+  background: #2f7d73;
+  border-color: #25645c;
 }
 
 .stat__meter--high .stat__segment--active {
-	background: #a06c1d;
-	border-color: #7d5315;
+  background: #a06c1d;
+  border-color: #7d5315;
+}
+
+/* Drag-time hints: which meter the held choice will move, direction only. */
+.stat__meter--rise {
+  box-shadow: 0 0 0 2px #2f7d73;
+}
+
+.stat__meter--fall {
+  box-shadow: 0 0 0 2px #b93d31;
+}
+
+.status-block {
+  display: grid;
+  gap: 8px;
+}
+
+.stability {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  line-height: 1.25;
+}
+
+.stability--stable {
+  color: #1f6f55;
+  background: rgba(47, 125, 115, 0.12);
+}
+
+.stability--watch {
+  color: #8a5a12;
+  background: rgba(160, 108, 29, 0.14);
+}
+
+.stability--danger {
+  color: #9a2c20;
+  background: rgba(185, 61, 49, 0.14);
+}
+
+.legend {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--ink) 70%, var(--paper));
+}
+
+.legend b {
+  color: var(--ink);
 }
 
 .care-help {
-  border-block: 1px solid rgba(23, 33, 31, 0.2);
+  border-block: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
   padding-block: 8px;
 }
 
 .care-help__summary {
   width: fit-content;
-  color: #17211f;
+  color: var(--ink);
   font-weight: 800;
   cursor: pointer;
 }
@@ -202,26 +284,194 @@ a {
 .care-help__text {
   margin: 8px 0 0;
   max-width: 66ch;
-  color: #334642;
+  color: color-mix(in srgb, var(--ink) 82%, var(--paper));
   line-height: 1.45;
 }
 
+.card-stage {
+  position: relative;
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: 14px;
+}
+
+.card-ghost,
 .card {
-  min-height: min(58vh, 560px);
+  grid-row: 1;
+  grid-column: 1;
+}
+
+.choice-rail {
+  grid-row: 2;
+  grid-column: 1;
+}
+
+.card-ghost {
+  border: 2px solid color-mix(in srgb, var(--ink) 16%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--paper) 88%, var(--ink));
+  pointer-events: none;
+}
+
+.card-ghost--front {
+  transform: translateY(-9px) scale(0.972);
+  opacity: 0.6;
+  z-index: 1;
+}
+
+.card-ghost--back {
+  transform: translateY(-18px) scale(0.944);
+  opacity: 0.32;
+  z-index: 0;
+}
+
+.card {
+  position: relative;
+  z-index: 2;
+  overflow: hidden;
+  min-height: min(42vh, 480px);
   display: grid;
   align-content: center;
   gap: 16px;
   padding: clamp(20px, 6vw, 44px);
-  border: 2px solid rgba(23, 33, 31, 0.18);
+  border: 2px solid color-mix(in srgb, var(--ink) 20%, transparent);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 42px rgba(23, 33, 31, 0.14);
-  touch-action: pan-y;
+  background: var(--paper);
+  color: var(--ink);
+  box-shadow: 0 18px 42px var(--glow);
+  transform-origin: bottom center;
+  transition:
+    transform 0.26s cubic-bezier(0.2, 0.8, 0.3, 1),
+    box-shadow 0.15s ease;
+}
+
+.card--draggable {
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  cursor: grab;
+}
+
+.card--dragging {
+  transition: none;
+  cursor: grabbing;
+}
+
+.card--spring {
+  transition: transform 0.3s cubic-bezier(0.34, 1.4, 0.5, 1);
+}
+
+.card--active-left {
+  box-shadow:
+    inset 8px 0 0 var(--left),
+    0 18px 42px var(--glow);
+}
+
+.card--active-right {
+  box-shadow:
+    inset -8px 0 0 var(--right),
+    0 18px 42px var(--glow);
+}
+
+/* First card rocks on its own so players discover it shifts and is draggable. */
+@keyframes cardNudge {
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg);
+  }
+  22% {
+    transform: translateX(-16px) rotate(-2.2deg);
+  }
+  44% {
+    transform: translateX(12px) rotate(1.6deg);
+  }
+  66% {
+    transform: translateX(-7px) rotate(-1deg);
+  }
+  82% {
+    transform: translateX(3px) rotate(0.4deg);
+  }
+}
+
+.card--nudge {
+  animation: cardNudge 2.4s ease-in-out 0.6s 3;
+}
+
+.card--dragging {
+  animation: none;
+}
+
+.card--fly-left {
+  transform: translateX(-145%) rotate(-20deg) !important;
+  opacity: 0;
+  transition:
+    transform 0.2s ease-in,
+    opacity 0.2s ease-in;
+}
+
+.card--fly-right {
+  transform: translateX(145%) rotate(20deg) !important;
+  opacity: 0;
+  transition:
+    transform 0.2s ease-in,
+    opacity 0.2s ease-in;
+}
+
+.card__edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 50%;
+  display: flex;
+  /* Pin the answer banner to the top so it never sits on top of the prompt. */
+  align-items: flex-start;
+  gap: 10px;
+  padding: 16px 18px;
+  opacity: 0;
+  pointer-events: none;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.card__edge--left {
+  left: 0;
+  justify-content: flex-start;
+  color: var(--left);
+  background: linear-gradient(90deg, color-mix(in srgb, var(--left) 22%, transparent), transparent);
+}
+
+.card__edge--right {
+  right: 0;
+  justify-content: flex-end;
+  color: var(--right);
+  background: linear-gradient(
+    270deg,
+    color-mix(in srgb, var(--right) 22%, transparent),
+    transparent
+  );
+}
+
+.card__edge-arrow {
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+.card__edge-label {
+  font-size: 0.95rem;
+  max-width: 9ch;
+}
+
+/* Fade the prompt while a side is held so the chosen answer banner stays legible. */
+.card--active-left .card__text,
+.card--active-right .card__text {
+  opacity: 0.32;
+  transition: opacity 0.12s ease;
 }
 
 .eyebrow {
   margin: 0;
-  color: #a33a2d;
+  color: var(--accent);
 }
 
 .card__title {
@@ -235,8 +485,8 @@ a {
 .card__text {
   margin: 0;
   max-width: 22ch;
-  font-size: clamp(1.65rem, 8vw, 3.8rem);
-  line-height: 1.06;
+  font-size: clamp(1.5rem, 7vw, 3.4rem);
+  line-height: 1.08;
   letter-spacing: 0;
 }
 
@@ -251,21 +501,47 @@ a {
 }
 
 .choice-button {
-  min-height: 86px;
+  min-height: 84px;
   display: grid;
   gap: 6px;
-  border: 2px solid #17211f;
+  border: 2px solid var(--ink);
   border-radius: 8px;
   padding: 13px 14px;
-  background: #17211f;
+  background: var(--ink);
   color: #ffffff;
   text-align: left;
   cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.1s ease;
 }
 
-.choice-button:hover {
-  border-color: #0d6270;
-  background: #0d6270;
+/* Each side carries its own color so the two answers read as distinct. */
+.choice-button--0 {
+  background: var(--left);
+  border-color: var(--left);
+}
+
+.choice-button--1 {
+  background: var(--right);
+  border-color: var(--right);
+}
+
+.choice-button--0:hover,
+.choice-button--0:focus-visible {
+  background: color-mix(in srgb, var(--left) 82%, black);
+  border-color: color-mix(in srgb, var(--left) 82%, black);
+}
+
+.choice-button--1:hover,
+.choice-button--1:focus-visible {
+  background: color-mix(in srgb, var(--right) 82%, black);
+  border-color: color-mix(in srgb, var(--right) 82%, black);
+}
+
+.choice-button:active {
+  transform: translateY(1px);
 }
 
 .choice-button__direction {
@@ -282,19 +558,44 @@ a {
   color: rgba(255, 255, 255, 0.8);
 }
 
+.choice-button__effects {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.effect-tag {
+  padding: 2px 7px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  background: rgba(255, 255, 255, 0.16);
+  color: #ffffff;
+}
+
+.effect-tag--up {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.effect-tag--down {
+  background: rgba(0, 0, 0, 0.26);
+}
+
 .input-strip {
   margin: 0;
-  color: #344844;
+  color: color-mix(in srgb, var(--ink) 78%, var(--paper));
   font-size: 0.92rem;
   line-height: 1.35;
 }
 
 kbd {
-  border: 1px solid rgba(23, 33, 31, 0.34);
+  border: 1px solid color-mix(in srgb, var(--ink) 34%, transparent);
   border-radius: 4px;
   padding: 1px 5px;
-  background: #ffffff;
-  color: #17211f;
+  background: var(--paper);
+  color: var(--ink);
   font-weight: 800;
 }
 
@@ -311,6 +612,20 @@ kbd {
   margin: 0;
   padding-left: 18px;
   line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .card--spring,
+  .card--fly-left,
+  .card--fly-right,
+  .game-shell {
+    transition: none;
+  }
+
+  .card--nudge {
+    animation: none;
+  }
 }
 
 @media (min-width: 680px) {
@@ -333,7 +648,7 @@ kbd {
   }
 
   .card {
-    min-height: 520px;
+    min-height: 500px;
   }
 
   .choice-rail {

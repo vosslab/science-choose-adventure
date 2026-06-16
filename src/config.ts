@@ -75,6 +75,66 @@ export const SCIENTIST_CONFIG = {
   },
 } as const satisfies Record<ScientistId, { name: string; field: string; sourceFile: string }>;
 
+export type ThemePalette = {
+  readonly paper: string;
+  readonly ink: string;
+  readonly accent: string;
+  readonly glow: string;
+  readonly motif: string;
+};
+
+// Neutral parchment theme used during the prologue, before a path is chosen.
+export const PROLOGUE_THEME: ThemePalette = {
+  paper: "#fbf8ef",
+  ink: "#17211f",
+  accent: "#a33a2d",
+  glow: "rgba(23, 33, 31, 0.16)",
+  motif: "Sorting the career route",
+};
+
+// One palette per path, drawn from each scientist's research motif.
+export const SCIENTIST_THEME = {
+  jennifer_doudna: {
+    paper: "#f0f7f4",
+    ink: "#103629",
+    accent: "#1f9d6b",
+    glow: "rgba(16, 54, 43, 0.22)",
+    motif: "Scissors and signatures",
+  },
+  rosalind_franklin: {
+    paper: "#eef0fb",
+    ink: "#1b1f43",
+    accent: "#4456c7",
+    glow: "rgba(27, 31, 67, 0.24)",
+    motif: "The photograph is sharp, the room is not",
+  },
+  marie_curie: {
+    paper: "#eef4ef",
+    ink: "#14201a",
+    accent: "#2f9e5b",
+    glow: "rgba(33, 90, 55, 0.32)",
+    motif: "The glow is beautiful and dangerous",
+  },
+  alexander_fleming: {
+    paper: "#f6f2e4",
+    ink: "#2c2410",
+    accent: "#9a7b1b",
+    glow: "rgba(60, 50, 16, 0.22)",
+    motif: "The dirty bench tells the truth",
+  },
+  katalin_kariko: {
+    paper: "#f9eef6",
+    ink: "#3a1430",
+    accent: "#b5378f",
+    glow: "rgba(58, 20, 48, 0.24)",
+    motif: "Decades of no before one yes",
+  },
+} as const satisfies Record<ScientistId, ThemePalette>;
+
+export function scientistTheme(scientistId: ScientistId): ThemePalette {
+  return SCIENTIST_THEME[scientistId];
+}
+
 export const ARC_BEATS = ["entry", "pressure", "breakthrough", "translation", "legacy"] as const;
 
 export type ArcBeat = (typeof ARC_BEATS)[number];

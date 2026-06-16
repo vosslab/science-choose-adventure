@@ -1,143 +1,109 @@
-# Usage
+# USAGE.md
 
-Science Career Survival is a static TypeScript browser game. It builds to
-`dist/` and runs locally from the generated files.
+How to run the tools in this repository.
 
-## Play loop
+## reset_repo.py
 
-The game presents 12 anonymous career dilemmas drawn from a shared question
-pool. No scientist is named or hinted during the run. Your choices shift four
-career stats and build a profile that is compared against hand-authored
-signatures at the end.
+`reset_repo.py` is the bootstrap entry point for a new consumer repo cloned from this
+template. It runs an interactive interview (project type, code license, docs license,
+PyPI intent, stage, commit), writes the `REPO_TYPE` marker, installs license files,
+seeds `pyproject.toml` when PyPI is requested, runs propagation, and removes
+template-meta paths.
 
-The interface accepts:
-
-- Mobile swipe left or right.
-- Touch, click, or button activation.
-- Left arrow or `A` for the left choice.
-- Right arrow or `D` for the right choice.
-
-Progress is shown as "Question k of 12" above the card. The four stat meters
-update after each answer.
-
-## The four Cs
-
-The four stats model career pressure rather than simple success points:
-
-- Credibility: trust from peers, institutions, and the public.
-- Curiosity: willingness to follow hard questions and evidence.
-- Cash: resources, patronage, institutions, and practical support.
-- Care: attention to people, consequences, safety, and personal cost.
-
-Stats start at 50 and clamp between 0 and 100. Each meter has 10 visible steps.
-There is no win or lose condition; no stat threshold ends the run.
-
-Meter color follows a pressure model: steps 1-2 display in red (low), steps 3-4
-in amber (getting low), and steps 5-10 in a neutral-to-strong range. A high stat
-is treated as a strength, never a warning. Each stat meter carries a hover
-tooltip with that stat's definition.
-
-## Soft texture wording
-
-When a stat runs low the game surfaces a short texture line below the meters,
-for example "the lab is fraying for lack of funds". This describes career strain
-without threatening the run. The same stat pressures are reflected in the end
-reveal explanation.
-
-## End reveal
-
-After the 12th answer the game reveals which scientist your career profile most
-resembles. The result screen shows:
-
-- "You most resemble {name}" as the headline.
-- A plain-language explanation of the match based on the two or three most
-  decisive stats (for example "curiosity and care stayed high while cash stayed
-  low").
-- Per-stat rationale for the matched scientist (why each C is high, medium, or
-  low for that scientist).
-- An ordered name ranking of all five scientists (no raw numeric distances).
-- Unlocked source notes for the matched scientist (the engine adds a
-  `"{scientistId}:source_notes"` token to `unlockedExtras` when the run transitions to the
-  result phase, which the UI reads to reveal that scientist's source notes).
-
-## Restart and reset
-
-Use the Restart button on the result screen to start a new run; the previous
-result is replaced in the saved state.
-
-Use the Reset button or clear `localStorage` in the browser developer tools to
-remove the save entirely and start fresh.
-
-Browser developer tools can also remove the `science_career_survival:v2` entry
-directly from the Application > Local Storage panel.
-
-## Source material
-
-The folder [data/science_career_paths/](../data/science_career_paths/) contains
-local path drafts and source material for content work. Treat that folder as the
-working source-reference area for this repo; do not describe it as public
-documentation unless the project intentionally makes that claim elsewhere.
-
-Runtime game content is authored in TypeScript. The source drafts inform the
-cards and source notes, but the browser does not load Markdown draft files at
-runtime.
-
-## Card authoring
-
-The neutral core deck and scientist flavor pool follow this content standard:
-
-- Use historically inspired career pressure, not strict biography.
-- Keep satire aimed at institutions, incentives, committees, funding systems,
-  media pressure, and career absurdity.
-- Make specific historical claims only when source notes cover them.
-- Keep every card to exactly two choices.
-- Give each choice at least one stat effect.
-- Tag each card with `probes` (the stats the card is thematically about); every
-  probed stat must appear in at least one of the card's choice effects.
-- Core deck cards must not name or identify any scientist.
-- Flavor pool cards must not use instantly identifying terms such as mRNA,
-  radium, Photo 51, mold plate, or penicillin.
-- Include 3 to 5 source notes per scientist.
-
-## Build and serve
-
-Install dependencies:
+### Normal use (interactive)
 
 ```bash
-npm install
+source source_me.sh && python3 reset_repo.py
 ```
 
-Run the full local check:
+The script interviews you in your terminal. No flags are required for normal use.
+
+### CLI flags
+
+| Flag | Description |
+| --- | --- |
+| `--config <file>` | Supply interview answers from a JSON file (testing/reproducibility mode) |
+| `--dry-run` | Log planned actions without writing any files |
+| `-h` | Show help and exit |
+
+### Config mode (testing/reproducibility interface)
+
+`--config` is intended for automated testing and reproducible resets, not for
+routine human use. Pass a JSON file with the interview answers:
 
 ```bash
-npm run check
+source source_me.sh && python3 reset_repo.py --config my_config.json
 ```
 
-Build the static site:
+Config mode is non-interactive: the script reads answers from the file and proceeds
+without prompting. This replaces the interactive interview for the run.
 
-```bash
-npm run build
+#### JSON schema
+
+| Key | Required | Values | Notes |
+| --- | --- | --- | --- |
+| `project_type` | YES | `python` / `p`, `typescript` / `t`, `rust` / `r`, `other` / `o` | Short alias or full token |
+| `code_license` | YES | SPDX identifier or alias (e.g. `MIT`, `m`, `GPL-3.0`, `g`) | Resolved via `resolve_license` |
+| `docs_license` | no | SPDX identifier or alias | Default: `CC-BY-4.0` |
+| `pypi` | no | `true` / `false` | Default: `false`; Python-only |
+| `stage` | no | `true` / `false` | Default: `true` |
+| `commit` | no | `true` / `false` | Default: `false` |
+
+#### Minimal example
+
+```json
+{
+  "project_type": "python",
+  "code_license": "GPL-3.0"
+}
 ```
 
-Serve the built game:
+#### Full example
 
-```bash
-npm run serve
+```json
+{
+  "project_type": "typescript",
+  "code_license": "MIT",
+  "docs_license": "CC-BY-4.0",
+  "stage": false,
+  "commit": false
+}
 ```
 
-The build writes `dist/index.html`, `dist/main.js`, `dist/style.css`, and
-`dist/.nojekyll`.
+### Folder-name guard
 
-## Tests
+The script refuses to run when the repo root directory is named exactly
+`starter-repo-template`. This protects the template development checkout from
+accidental destruction.
 
-Run the browser smoke test after building:
+If you see this error, clone or rename the repo to your project name first:
 
-```bash
-npm run test:playwright
+```
+This repo is named starter-repo-template. Clone or rename it to the consumer project name before running reset.
 ```
 
-Run the Markdown link check through the repo Python environment:
+The guard checks the folder name only; it does not inspect remotes or origin URLs.
+
+### Outside a git repo
+
+Running `reset_repo.py` outside a git repository exits with a clear message
+instead of a raw subprocess traceback.
+
+## E2E test harness
+
+For the clone-based reset E2E harness (LOCAL and REMOTE modes), see
+[E2E_TESTS.md](E2E_TESTS.md) and the inline documentation in
+`tests/meta/e2e/e2e_reset_routing.py`. The harness is template-meta:
+it lives under `tests/meta/e2e/` and is removed by reset.
+
+Run all offline E2E tests:
 
 ```bash
-source source_me.sh && python3 -m pytest tests/test_markdown_links.py
+bash tests/meta/e2e/run_all.sh
+```
+
+Run a single E2E test:
+
+```bash
+source source_me.sh && python3 tests/meta/e2e/e2e_reset_routing.py
 ```

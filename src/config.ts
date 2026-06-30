@@ -38,12 +38,36 @@ export const MAGNITUDE_CONFIG = {
 } as const satisfies Record<EffectMagnitude, { label: string; delta: number }>;
 
 export const SCIENTIST_IDS = [
+  // Celebrated pool: the five resemblance targets the blind run matches against.
   "jennifer_doudna",
   "rosalind_franklin",
   "marie_curie",
   "alexander_fleming",
   "katalin_kariko",
+  // Disgraced pool: nine cautionary cases the downfall branch can route to.
+  "andrew_wakefield",
+  "hwang_woosuk",
+  "he_jiankui",
+  "gary_strobel",
+  "purdue_sackler",
+  "jan_hendrik_schon",
+  "diederik_stapel",
+  "paolo_macchiarini",
+  "haruko_obokata",
 ] as const;
+
+// A scientist is either a celebrated resemblance target or a disgraced cautionary case.
+export type ScientistKind = "celebrated" | "disgraced";
+
+// The kind of misconduct a disgraced case represents. Celebrated entries use "none".
+export type CaseType =
+  | "fraud"
+  | "fabrication"
+  | "reckless-human-research"
+  | "patient-harm"
+  | "profit-harm"
+  | "regulatory-violation"
+  | "none";
 
 export type ScientistId = (typeof SCIENTIST_IDS)[number];
 
@@ -52,28 +76,104 @@ export const SCIENTIST_CONFIG = {
     name: "Jennifer Doudna",
     field: "RNA and genome editing",
     sourceFile: "data/science_career_paths/jennifer_doudna.md",
+    kind: "celebrated",
+    caseType: "none",
   },
   rosalind_franklin: {
     name: "Rosalind Franklin",
     field: "X-ray crystallography and DNA",
     sourceFile: "data/science_career_paths/rosalind_franklin.md",
+    kind: "celebrated",
+    caseType: "none",
   },
   marie_curie: {
     name: "Marie Curie",
     field: "radioactivity",
     sourceFile: "data/science_career_paths/marie_curie.md",
+    kind: "celebrated",
+    caseType: "none",
   },
   alexander_fleming: {
     name: "Alexander Fleming",
     field: "bacteriology and penicillin",
     sourceFile: "data/science_career_paths/alexander_fleming.md",
+    kind: "celebrated",
+    caseType: "none",
   },
   katalin_kariko: {
     name: "Katalin Kariko",
     field: "mRNA therapeutics",
     sourceFile: "data/science_career_paths/katalin_kariko.md",
+    kind: "celebrated",
+    caseType: "none",
   },
-} as const satisfies Record<ScientistId, { name: string; field: string; sourceFile: string }>;
+  andrew_wakefield: {
+    name: "Andrew Wakefield",
+    field: "vaccine safety (retracted)",
+    sourceFile: "data/science_career_paths/andrew_wakefield.md",
+    kind: "disgraced",
+    caseType: "fraud",
+  },
+  hwang_woosuk: {
+    name: "Hwang Woo-suk",
+    field: "stem-cell cloning (fabricated)",
+    sourceFile: "data/science_career_paths/hwang_woosuk.md",
+    kind: "disgraced",
+    caseType: "fabrication",
+  },
+  he_jiankui: {
+    name: "He Jiankui",
+    field: "human embryo editing",
+    sourceFile: "data/science_career_paths/he_jiankui.md",
+    kind: "disgraced",
+    caseType: "reckless-human-research",
+  },
+  gary_strobel: {
+    name: "Gary Strobel",
+    field: "plant microbiology",
+    sourceFile: "data/science_career_paths/gary_strobel.md",
+    kind: "disgraced",
+    caseType: "regulatory-violation",
+  },
+  purdue_sackler: {
+    name: "Purdue/Sackler",
+    field: "pharmaceutical marketing",
+    sourceFile: "data/science_career_paths/purdue_sackler.md",
+    kind: "disgraced",
+    caseType: "profit-harm",
+  },
+  jan_hendrik_schon: {
+    name: "Jan Hendrik Schon",
+    field: "condensed-matter physics",
+    sourceFile: "data/science_career_paths/jan_hendrik_schon.md",
+    kind: "disgraced",
+    caseType: "fabrication",
+  },
+  diederik_stapel: {
+    name: "Diederik Stapel",
+    field: "social psychology",
+    sourceFile: "data/science_career_paths/diederik_stapel.md",
+    kind: "disgraced",
+    caseType: "fabrication",
+  },
+  paolo_macchiarini: {
+    name: "Paolo Macchiarini",
+    field: "regenerative surgery",
+    sourceFile: "data/science_career_paths/paolo_macchiarini.md",
+    kind: "disgraced",
+    caseType: "patient-harm",
+  },
+  haruko_obokata: {
+    name: "Haruko Obokata",
+    field: "stem-cell biology (STAP)",
+    sourceFile: "data/science_career_paths/haruko_obokata.md",
+    kind: "disgraced",
+    caseType: "fabrication",
+  },
+} as const satisfies Record<
+  ScientistId,
+  { name: string; field: string; sourceFile: string; kind: ScientistKind; caseType: CaseType }
+>;
 
 export type ThemePalette = {
   readonly paper: string;
@@ -129,6 +229,70 @@ export const SCIENTIST_THEME = {
     glow: "rgba(58, 20, 48, 0.24)",
     motif: "Decades of no before one yes",
   },
+  // Disgraced-pool palettes: dark/muted treatment for the downfall reveal.
+  andrew_wakefield: {
+    paper: "#1a1414",
+    ink: "#e6d9d6",
+    accent: "#9a3b34",
+    glow: "rgba(154, 59, 52, 0.30)",
+    motif: "A retracted paper that would not die",
+  },
+  hwang_woosuk: {
+    paper: "#141a18",
+    ink: "#d8e2dd",
+    accent: "#3f7a68",
+    glow: "rgba(63, 122, 104, 0.30)",
+    motif: "Cloned headlines, hollow data",
+  },
+  he_jiankui: {
+    paper: "#15171c",
+    ink: "#dadfe8",
+    accent: "#5566b0",
+    glow: "rgba(85, 102, 176, 0.30)",
+    motif: "Edited children, broken lines",
+  },
+  gary_strobel: {
+    paper: "#181a12",
+    ink: "#e0e2d2",
+    accent: "#7d8a3a",
+    glow: "rgba(125, 138, 58, 0.30)",
+    motif: "Released into the field before the permits arrived",
+  },
+  purdue_sackler: {
+    paper: "#1c1812",
+    ink: "#e8ddcc",
+    accent: "#a8862f",
+    glow: "rgba(168, 134, 47, 0.30)",
+    motif: "Marketing pain by the milligram",
+  },
+  jan_hendrik_schon: {
+    paper: "#12161a",
+    ink: "#d6dee6",
+    accent: "#4a6fa0",
+    glow: "rgba(74, 111, 160, 0.30)",
+    motif: "One graph, reused too many times",
+  },
+  diederik_stapel: {
+    paper: "#181318",
+    ink: "#e2d6e0",
+    accent: "#8a4a82",
+    glow: "rgba(138, 74, 130, 0.30)",
+    motif: "Data invented to fit the story",
+  },
+  paolo_macchiarini: {
+    paper: "#1a1212",
+    ink: "#e6d4d4",
+    accent: "#9c4444",
+    glow: "rgba(156, 68, 68, 0.30)",
+    motif: "Miracle surgery, fatal cost",
+  },
+  haruko_obokata: {
+    paper: "#121a16",
+    ink: "#d4e2da",
+    accent: "#3f8a6a",
+    glow: "rgba(63, 138, 106, 0.30)",
+    motif: "A stress that never made the cells",
+  },
 } as const satisfies Record<ScientistId, ThemePalette>;
 
 export function scientistTheme(scientistId: ScientistId): ThemePalette {
@@ -137,14 +301,22 @@ export function scientistTheme(scientistId: ScientistId): ThemePalette {
 
 export const STARTING_STAT_VALUE = 50;
 
-// Number of display steps in a stat meter (1-10 scale).
+// Number of display steps in a normal stat meter (1-10 scale). Also the value-units per
+// step, since the normal ceiling is 100 (100 / 10 = 10 steps).
 export const STAT_STEP_COUNT = 10;
 
-// Map a stat value to a 1-10 display step. ceil keeps small nonzero values at step 1,
-// and max(1, ...) prevents a value of 0 from rendering an empty meter.
+// Normal playable ceiling: a stat at this value fills all STAT_STEP_COUNT meter steps.
+// Values above this enter the extreme band -- there is no hard maximum, so a hard-pushed
+// stat keeps climbing and the meter grows extra steps to match.
+export const STAT_NORMAL_MAX = 100;
+
+// Map a stat value to a display step. ceil keeps small nonzero values at step 1, and
+// max(1, ...) prevents a value of 0 from rendering an empty meter. The value is floored at
+// 0 but has no upper bound: values past STAT_NORMAL_MAX return steps above STAT_STEP_COUNT
+// without limit, so the extreme band is unbounded.
 export function statStep(value: number): number {
-  const clampedValue = Math.max(0, Math.min(100, value));
-  const step = Math.max(1, Math.ceil(clampedValue / STAT_STEP_COUNT));
+  const flooredValue = Math.max(0, value);
+  const step = Math.max(1, Math.ceil(flooredValue / STAT_STEP_COUNT));
   return step;
 }
 
@@ -267,7 +439,113 @@ export const SCIENTIST_SIGNATURE: Record<
       care: "High: the through-line was a therapy meant to protect people, pursued for decades.",
     },
   },
+  // Disgraced-pool signatures. Values are pairwise distinct by >= FLAVOR_MIN_MARGIN;
+  // minimum pair is gary_strobel vs haruko_obokata at ~22.6. Rationales are grounded
+  // in documented public records of each case; keep educational and non-sensational.
+  andrew_wakefield: {
+    values: { credibility: 10, curiosity: 35, cash: 80, care: 15 },
+    rationale: {
+      credibility:
+        "Very low: the Lancet paper was retracted for fraud and Wakefield was struck from the medical register.",
+      curiosity:
+        "Low-medium: pursued a narrow anti-vaccine claim rather than open epidemiological inquiry.",
+      cash: "High: received undisclosed payments from a law firm seeking to sue vaccine manufacturers.",
+      care: "Very low: the false alarm depressed vaccination rates and damaged public health for years.",
+    },
+  },
+  hwang_woosuk: {
+    values: { credibility: 15, curiosity: 85, cash: 60, care: 30 },
+    rationale: {
+      credibility:
+        "Very low: landmark human-cloning claims published in Science were entirely fabricated and retracted.",
+      curiosity:
+        "Very high: aggressively chased the frontier of human embryo cloning before any lab had the technique.",
+      cash: "Medium-high: South Korea directed major national prestige funding to the project before the fraud emerged.",
+      care: "Low: pressured junior staff to donate eggs and bypassed normal ethical review to accelerate results.",
+    },
+  },
+  he_jiankui: {
+    values: { credibility: 25, curiosity: 95, cash: 50, care: 5 },
+    rationale: {
+      credibility:
+        "Low: conducted secret embryo editing outside peer review, drawing global condemnation and a prison sentence.",
+      curiosity:
+        "Very high: raced to be the first to apply CRISPR to the human germline before safety standards existed.",
+      cash: "Medium: privately funded outside the normal grant process, which helped conceal the work from oversight.",
+      care: "Very low: proceeded without genuine informed consent and ignored scientific consensus that the field was not ready.",
+    },
+  },
+  gary_strobel: {
+    values: { credibility: 40, curiosity: 80, cash: 20, care: 40 },
+    rationale: {
+      credibility:
+        "Low-medium: a productive biology career was undermined by a regulatory violation, not data fraud.",
+      curiosity:
+        "High: wide-ranging hunt for bioactive microbes carried across forests on multiple continents.",
+      cash: "Low: field campaigns on a modest academic budget with no commercial backing.",
+      care: "Low-medium: released an engineered Fusarium strain in a UK field site without obtaining the required permits.",
+    },
+  },
+  purdue_sackler: {
+    values: { credibility: 45, curiosity: 20, cash: 95, care: 5 },
+    rationale: {
+      credibility:
+        "Low-medium: company credibility collapsed when internal documents showed executives knew addiction risks were understated.",
+      curiosity:
+        "Very low: the enterprise was pharmaceutical marketing, not scientific research or genuine innovation.",
+      cash: "Very high: OxyContin generated billions while aggressive promotion systematically minimized addiction risk.",
+      care: "Very low: evidence of patient harm was suppressed to protect revenue; the human cost ran to hundreds of thousands.",
+    },
+  },
+  jan_hendrik_schon: {
+    values: { credibility: 20, curiosity: 70, cash: 35, care: 20 },
+    rationale: {
+      credibility:
+        "Very low: duplicate figures and impossible curves across more than 20 papers led to retraction and dismissal from Bell Labs.",
+      curiosity:
+        "Medium-high: targeted the most exciting condensed-matter topics, from organic superconductors to molecular transistors.",
+      cash: "Low-medium: worked within a prestigious industrial research lab but without independent grant funding.",
+      care: "Very low: deceived co-authors who lent their names to fabricated results and seeded the field with false leads.",
+    },
+  },
+  diederik_stapel: {
+    values: { credibility: 12, curiosity: 45, cash: 30, care: 25 },
+    rationale: {
+      credibility:
+        "Very low: invented data for dozens of studies over years; a formal inquiry led to more than 50 retractions.",
+      curiosity:
+        "Low-medium: preferred tidy narratives over real data, replacing genuine inquiry with storytelling.",
+      cash: "Low: supported by standard Dutch academic grants; the misconduct was driven by prestige rather than financial gain.",
+      care: "Low: betrayed PhD students who built dissertations on data they were never told was fabricated.",
+    },
+  },
+  paolo_macchiarini: {
+    values: { credibility: 30, curiosity: 75, cash: 75, care: 5 },
+    rationale: {
+      credibility:
+        "Low: overstated patient outcomes in publications; several papers were retracted and most transplant recipients died.",
+      curiosity:
+        "High: pursued a speculative frontier of regenerative surgery using synthetic tracheal scaffolds seeded with stem cells.",
+      cash: "High: attracted major institutional investment and international press attention to the experimental procedures.",
+      care: "Very low: continued operating on patients despite mounting evidence of failure; most recipients did not survive.",
+    },
+  },
+  haruko_obokata: {
+    values: { credibility: 18, curiosity: 80, cash: 25, care: 40 },
+    rationale: {
+      credibility:
+        "Very low: the STAP cell papers were retracted after manipulation and improper splicing of image data were found.",
+      curiosity:
+        "High: claimed that simple acid stress could reprogram adult cells to pluripotency, a striking biological shortcut.",
+      cash: "Low: an early-career researcher working within a large institute on standard laboratory resources.",
+      care: "Low-medium: the retraction damaged collaborators' careers and shook public trust in the stem-cell research community.",
+    },
+  },
 };
+
+// Credibility at or below this floor routes a run to the disgraced pool and the
+// downfall branch instead of the celebrated resemblance reveal.
+export const DISGRACE_FLOOR = 20;
 
 // Soft-tension texture lines shown when a stat runs low. Low is the only genuine
 // pressure in the no-lose resemblance model, so there is one concern line per stat and

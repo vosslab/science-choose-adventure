@@ -1,5 +1,106 @@
 # Changelog
 
+## 2026-06-29
+
+### Additions and New Features
+
+- Patch 1: Extended `SCIENTIST_IDS` in `src/config.ts` with 9 disgraced cautionary
+  cases: `andrew_wakefield`, `hwang_woosuk`, `he_jiankui`, `gary_strobel`,
+  `purdue_sackler`, `jan_hendrik_schon`, `diederik_stapel`, `paolo_macchiarini`,
+  `haruko_obokata`. Each entry in `SCIENTIST_CONFIG` carries two new fields:
+  `kind: "celebrated" | "disgraced"` (the match pool) and `caseType` (the
+  six-value misconduct taxonomy: `fraud`, `fabrication`, `reckless-human-research`,
+  `patient-harm`, `profit-harm`, `regulatory-violation`, or `none` for celebrated
+  entries). Added `export const DISGRACE_FLOOR = 20` as the credibility threshold
+  for the downfall branch.
+- Patch 2: Added downfall branch in `src/engine.ts`: `celebratedIds()` and
+  `disgracedIds()` pool helpers; `rankSignatures` now accepts an optional pool
+  argument; `toResultState` computes `downfall = stats.credibility <= DISGRACE_FLOOR`,
+  picks the matching pool, and sets `tone: "celebrated" | "disgraced"` on the result
+  `GameState` and `VisibleCard`. Added `downfallExplanation()` variant that frames
+  decisive stats as "cratered" or "ran hot" (words only, no digits).
+  Mid-run flavor injection continues to rank within the celebrated pool only,
+  preserving the blind run -- disgraced cases are never surfaced before the reveal.
+- Patch 3: Finalized all 9 disgraced-pool entries in `SCIENTIST_SIGNATURE`
+  and `SCIENTIST_THEME` in `src/config.ts`. Replaced placeholder rationales with
+  one-line, ASCII-only, educational rationales grounded in documented public records
+  for each case (Wakefield, Hwang, He Jiankui, Strobel, Purdue/Sackler, Schon,
+  Stapel, Macchiarini, Obokata). All values remain as tuned in Patch 1; minimum
+  pairwise Euclidean distance across all 14 signatures is gary_strobel vs
+  haruko_obokata at 22.56 (above the 20-point FLAVOR_MIN_MARGIN floor).
+- Patch 4: Added flavor cards (>=1 per disgraced id) to `FLAVOR_POOL` in
+  `src/content.ts`; prompts do not name or identify the scientist per the leak-term
+  rule. Added `SCIENTIST_SOURCE_NOTES` blocks per disgraced id using real https
+  source links (Wikipedia, Lancet retraction, PMC articles, NYT/AP for Strobel).
+- Patch 5: Extended `LEAK_TERM_DENYLIST` in `src/content_validation.ts` with the
+  disgraced names and identifying terms (wakefield, hwang, jiankui, strobel,
+  sackler, oxycontin, schon, stapel, macchiarini, obokata, mmr, autism, stap)
+  so flavor prompts cannot identify any disgraced case.
+- Extreme stat band: any 4C stat can now be driven past the normal ceiling
+  (`STAT_NORMAL_MAX = 100`) with no upper cap. `clampStat` now only floors at 0;
+  `statStep` returns steps above `STAT_STEP_COUNT` without limit. The meter grows one
+  extra gold segment per extreme step (`stat__segment--extreme` in `src/style.css`) and
+  `renderStats` sizes the meter grid columns to the live step count so segments stay on
+  one row.
+
+### Behavior or Interface Changes
+
+- The outcome model now has two match pools. A final `credibility <= DISGRACE_FLOOR`
+  routes the run to the disgraced pool (tone: `"disgraced"`), else the celebrated pool
+  (tone: `"celebrated"`). The two pools are ranked separately; no disgraced case ever
+  appears in a celebrated reveal, and no celebrated scientist appears in a downfall reveal.
+- Patch 6: Downfall reveal in `src/ui_renderer.ts` renders a case-echo headline
+  ("Your choices echo the {name} case") and applies the disgraced-pool dark theme
+  from `SCIENTIST_THEME`. Celebrated reveals keep the existing "You most resemble"
+  headline. Disgraced source notes and rationale sections display on the same
+  result screen as celebrated ones.
+- Patch 7: Storage key bumped from `science_career_survival:v2` to
+  `science_career_survival:v3` to carry the new `tone` field on the result phase.
+  Old v1/v2 saves are silently discarded (no migration); the tolerant garbage-blob
+  parse behavior is unchanged.
+- Extreme stat downfall trigger: the disgraced "jail" branch in `toResultState` now
+  fires when `credibility <= DISGRACE_FLOOR` OR any stat exceeds `STAT_NORMAL_MAX`.
+  Pushing any 4C stat into the extreme band routes the run to the disgraced pool;
+  the raw extreme value pulls the match toward the case sharing that extreme (extreme
+  cash toward the profit-harm case, extreme curiosity toward the reckless-research
+  case). Resemblance for non-extreme runs is byte-identical to before, since those
+  runs never exceeded 100.
+
+### Fixes and Maintenance
+
+- Corrected gary_strobel's theme motif from "Samples taken without leave"
+  (which implied unauthorized sample collection) to "Released into the field
+  before the permits arrived." -- accurately framing the case as an unauthorized
+  field release of an engineered organism, per the plan framing rule.
+- Patch 8: Updated `docs/FILE_FORMATS.md` to document the two-pool outcome model,
+  `kind` and `caseType` fields, `DISGRACE_FLOOR`, the downfall branch, the
+  leak-term rule for disgraced flavor prompts, all 14 signatures in
+  `SCIENTIST_SIGNATURE`, and the v3 save envelope with `tone` in the result phase.
+
+### Developer Tests and Notes
+
+- Patch 8: Added two deterministic tests to `tests/test_engine_flow.mjs`:
+  (h) a credibility-flooring strategy (always pick the choice with the most
+  `credibility: down` effects per `currentVisibleCard`) drives a full run to
+  `tone === "disgraced"` with a disgraced-pool match; the flooring run crossed
+  DISGRACE_FLOOR (credibility reached 0 by card 5 of 12), confirming the downfall
+  branch is reachable with the current deck and DISGRACE_FLOOR=20;
+  (i) the always-0 run stays above DISGRACE_FLOOR (credibility=90) and reaches
+  `tone === "celebrated"` with a celebrated-pool match.
+  Both new tests also assert the explanation is non-empty and digit-free,
+  extending the existing digit-free contract to the downfall tone.
+  All 10 engine-flow tests and all 5 content-contract tests pass; npm run check
+  returns PASS on all 5 steps (typecheck, typecheck:lint, lint, format:check,
+  test:node).
+- Added two extreme-band tests to `tests/test_engine_flow.mjs`: (j) `statStep`
+  climbs above `STAT_STEP_COUNT` past the normal ceiling and caps at
+  `EXTREME_STEP_COUNT` (never overflowing past `STAT_MAX_VALUE`); (k) a greedy
+  stat-pushing strategy drives some stat past `STAT_NORMAL_MAX` and reaches
+  `tone === "disgraced"` with a disgraced-pool match -- confirming the extreme-stat
+  downfall path is reachable through normal play. Test d's clamp range updated from
+  `[0, 100]` to `[0, STAT_MAX_VALUE]`. All 12 engine-flow tests pass; npm run check
+  still PASS on all 5 steps and `npm run build` succeeds.
+
 ## 2026-06-16
 
 ### Additions and New Features

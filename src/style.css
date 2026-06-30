@@ -224,6 +224,19 @@ a {
   border-color: #168055;
 }
 
+/* Extreme overflow band: segments past the normal 10 steps. An unfilled extreme segment
+   reads as a faint gold socket; a filled one glows gold regardless of low-pressure tone,
+   so an extreme stat looks like dangerous excess (the path to the disgraced outcome). */
+.stat__segment--extreme {
+  border-color: rgba(176, 137, 24, 0.5);
+  background: rgba(212, 175, 55, 0.18);
+}
+
+.stat__meter .stat__segment--extreme.stat__segment--active {
+  background: #d4af37;
+  border-color: #a9851c;
+}
+
 /* Drag-time hints: which meter the held choice will move, direction only. */
 .stat__meter--rise {
   box-shadow: 0 0 0 2px #2f7d73;
@@ -650,6 +663,28 @@ kbd {
   margin: 0;
   color: var(--accent);
   font-weight: 700;
+}
+
+/* Downfall reveal: headline uses the accent color from the disgraced scientist's somber
+   theme palette, giving it a visual distinction from the celebrated "You most resemble"
+   wording while staying consistent with the existing theme-variable approach. */
+.result-headline__title--downfall {
+  color: var(--accent);
+}
+
+/* Misconduct type tag surfaced below the field on disgraced reveals. Styled as a subdued
+   pill consistent with the existing ranking tag conventions. */
+.result-headline__case-tag {
+  display: inline-block;
+  margin: 0;
+  padding: 2px 10px;
+  border: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .result-explanation {

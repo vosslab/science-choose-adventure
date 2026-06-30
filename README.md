@@ -1,6 +1,6 @@
 # Science Career Survival
 
-A static TypeScript browser game where your choices across 12 career dilemmas reveal which of five historically inspired scientists your career style most resembles, built on a shared, scientist-neutral deck.
+A static TypeScript browser game where your choices across 12 career dilemmas reveal which historically inspired scientist (or, on a downfall, which cautionary case) your career style most resembles, built on a shared, scientist-neutral deck.
 
 ## Quick start
 
@@ -26,12 +26,13 @@ Your choices shift four career stats across the run:
 - Cash
 - Care
 
-Stats clamp at 0 and 100. When a stat drifts into an extreme band the game adds
-soft "strain" texture to the wording -- a narrative color that shapes the run
-without ending it. There is no win condition and no collapse ending.
+Stats are floored at 0 with no upper cap. Low stats add soft "strain" texture to
+the wording. Pushing a stat past 100 sends it into an extreme band: the meter grows
+extra gold segments, and the extreme reroutes your ending toward a cautionary case.
 
-At the end, the game compares your final stat profile to hand-authored signatures
-for five historically inspired scientists and reveals which one you most resemble:
+At the end, the game routes to one of two reveal pools. An honest run compares your
+final stat profile to hand-authored signatures for five celebrated scientists and
+reveals which one you most resemble:
 
 - Jennifer Doudna
 - Rosalind Franklin
@@ -39,9 +40,11 @@ for five historically inspired scientists and reveals which one you most resembl
 - Alexander Fleming
 - Katalin Kariko
 
-The reveal includes a plain-language explanation, a per-stat rationale for the
-match, an ordered ranking of all five scientists against your profile, and unlocked
-source notes about the matched scientist.
+A downfall -- credibility collapsing to the floor, or any stat pushed to an extreme --
+instead routes to one of nine cautionary science and biotech cases, revealing which
+case your choices echo. The reveal includes a plain-language explanation, a per-stat
+rationale for the match, an ordered ranking of the matched pool against your profile,
+and unlocked source notes about the matched outcome.
 
 The interface supports mobile swipe, touch or click buttons, and keyboard input.
 Use left arrow or `A` for the left choice, and right arrow or `D` for the right

@@ -9,9 +9,11 @@ import {
   scientistTheme,
   statBand,
   statStep,
+  type CaseType,
   type LowRisk,
   type EffectDirection,
   type ScientistId,
+  type ScientistKind,
   type StatId,
   type ThemePalette,
 } from "./config";
@@ -147,6 +149,10 @@ function renderStats(stats: StatValues): HTMLElement {
   for (const statId of STAT_IDS) {
     const statConfig = STAT_CONFIG[statId];
     const step = statStep(stats[statId]);
+    // The meter always shows at least the normal STAT_STEP_COUNT steps. A stat in the
+    // extreme band grows the meter to its current step (unbounded) so every overflow segment
+    // is visible; the extra segments past STAT_STEP_COUNT get a distinct gold treatment.
+    const totalSteps = Math.max(STAT_STEP_COUNT, step);
     // Meter color follows the low-pressure tier (bad/warn/ok), not the symmetric band:
     // only low values warn, and high values read as fine. tone keeps "high" as a
     // positive accent so high stats look good rather than neutral.
@@ -161,18 +167,32 @@ function renderStats(stats: StatValues): HTMLElement {
     // The blurb rides along in both the title (hover tooltip) and the aria-label
     // (screen readers), so each C explains itself without a separate help block.
     const meterDescription =
-      `${statConfig.label} is step ${step} of ${STAT_STEP_COUNT}, ${statBandLabel(stats[statId])}. ` +
+      `${statConfig.label} is step ${step} of ${totalSteps}, ${statBandLabel(stats[statId])}. ` +
       statConfig.blurb;
     meter.title = statConfig.blurb;
     meter.setAttribute("aria-label", meterDescription);
-    for (let index = 1; index <= STAT_STEP_COUNT; index += 1) {
-      const segmentClass = index <= step ? "stat__segment stat__segment--active" : "stat__segment";
+    // The base CSS grid is a fixed 10 columns; override it to the live step count so an
+    // extreme meter keeps all its segments on one row (they shrink to fit) instead of
+    // wrapping to a clipped second row.
+    meter.style.gridTemplateColumns = `repeat(${totalSteps}, minmax(0, 1fr))`;
+    for (let index = 1; index <= totalSteps; index += 1) {
+      // Segments past STAT_STEP_COUNT are the extreme overflow band; tag them so the gold
+      // treatment applies. Active segments fill up to the current step.
+      const isActive = index <= step;
+      const isExtreme = index > STAT_STEP_COUNT;
+      let segmentClass = "stat__segment";
+      if (isActive) {
+        segmentClass += " stat__segment--active";
+      }
+      if (isExtreme) {
+        segmentClass += " stat__segment--extreme";
+      }
       meter.append(makeElement("span", segmentClass, undefined));
     }
     const status = makeElement(
       "span",
       "stat__status",
-      `Step ${step} of ${STAT_STEP_COUNT} - ${statBandLabel(stats[statId])}`,
+      `Step ${step} of ${totalSteps} - ${statBandLabel(stats[statId])}`,
     );
     item.append(label, meter, status);
     wrapper.append(item);
@@ -338,15 +358,59 @@ function renderRunCard(
   return card;
 }
 
-// Headline plus the matched scientist's research field, so the reveal names who the player
-// resembles and what that scientist worked on. The headline "You most resemble {name}" comes
-// straight from the engine's VisibleCard, so the UI never re-derives the match wording.
-function renderResultHeadline(headline: string, scientistId: ScientistId): HTMLElement {
+// Maps a caseType value to a short human-readable label surfaced on the disgraced reveal.
+// Celebrated entries carry "none" and never reach this path.
+function caseTypeLabel(caseType: CaseType): string {
+  if (caseType === "fraud") {
+    return "fraud";
+  }
+  if (caseType === "fabrication") {
+    return "fabricated data";
+  }
+  if (caseType === "reckless-human-research") {
+    return "reckless human research";
+  }
+  if (caseType === "patient-harm") {
+    return "patients harmed";
+  }
+  if (caseType === "profit-harm") {
+    return "profit over safety";
+  }
+  if (caseType === "regulatory-violation") {
+    return "broke the rules";
+  }
+  // "none" is the only remaining variant (celebrated entries); it carries no tag. Any future
+  // CaseType variant added without a branch above falls here and is visibly uncovered.
+  return "";
+}
+
+// Headline plus the matched scientist's research field. The engine supplies the final
+// headline string for both tones (a celebrated resemblance, or a disgraced case echo), so
+// this renderer shows it verbatim and only varies the styling. A short misconduct tag is
+// added below the field for disgraced reveals.
+function renderResultHeadline(
+  headline: string,
+  scientistId: ScientistId,
+  tone: ScientistKind,
+): HTMLElement {
   const group = makeElement("div", "result-headline", undefined);
-  const headlineEl = makeElement("h2", "result-headline__title", headline);
+  const titleClass =
+    tone === "disgraced"
+      ? "result-headline__title result-headline__title--downfall"
+      : "result-headline__title";
+  const headlineEl = makeElement("h2", titleClass, headline);
   const field = SCIENTIST_CONFIG[scientistId].field;
   const fieldEl = makeElement("p", "result-headline__field", `Field: ${field}`);
   group.append(headlineEl, fieldEl);
+  // Surface the misconduct type as a short tag below the field on disgraced reveals.
+  if (tone === "disgraced") {
+    const caseType = SCIENTIST_CONFIG[scientistId].caseType;
+    const label = caseTypeLabel(caseType);
+    if (label.length > 0) {
+      const tag = makeElement("p", "result-headline__case-tag", label);
+      group.append(tag);
+    }
+  }
   return group;
 }
 
@@ -452,7 +516,7 @@ function renderResultCard(
   card.setAttribute("aria-label", "Result card");
 
   card.append(
-    renderResultHeadline(visibleCard.headline, visibleCard.scientistId),
+    renderResultHeadline(visibleCard.headline, visibleCard.scientistId, visibleCard.tone),
     renderResultExplanation(visibleCard.explanation),
     renderResultRationale(visibleCard.rationale),
     renderResultRanking(visibleCard.ranking),

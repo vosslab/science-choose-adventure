@@ -661,6 +661,168 @@ export const FLAVOR_POOL: Record<ScientistId, readonly CareerCard[]> = {
       ["credibility", "care"],
     ),
   ],
+  // Disgraced-pool flavor cards below are required for content coverage (FLAVOR_POOL must
+  // have at least one card per ScientistId). They are never injected mid-run: flavorLeader
+  // ranks only the celebrated pool, so no disgraced name can surface before the reveal. Do
+  // not remove them as "dead code" -- the coverage check fails without them.
+  andrew_wakefield: [
+    flavorCard(
+      "andrew_wakefield",
+      1,
+      "A lawyer offers steady funding if your study lands on the alarming conclusion they need.",
+      choice("Shape the result to fit the paying client", [
+        effect("cash", "up", "large"),
+        effect("credibility", "down", "large"),
+      ]),
+      choice("Report only what the evidence actually shows", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      ["cash", "credibility"],
+    ),
+  ],
+  hwang_woosuk: [
+    flavorCard(
+      "hwang_woosuk",
+      1,
+      "Volunteers for your samples were recruited in ways you would rather not examine.",
+      choice("Use the samples and keep moving fast", [
+        effect("curiosity", "up", "medium"),
+        effect("care", "down", "large"),
+      ]),
+      choice("Pause and fix how people were recruited", [
+        effect("care", "up", "large"),
+        effect("curiosity", "down", "small"),
+      ]),
+      ["curiosity", "care"],
+    ),
+    flavorCard(
+      "hwang_woosuk",
+      2,
+      "Your headline result is far shakier than the press release already going out.",
+      choice("Let the bold claim stand for now", [
+        effect("cash", "up", "large"),
+        effect("credibility", "down", "large"),
+      ]),
+      choice("Pull the claim until the data hold up", [
+        effect("credibility", "up", "large"),
+        effect("cash", "down", "medium"),
+      ]),
+      ["cash", "credibility"],
+    ),
+  ],
+  he_jiankui: [
+    flavorCard(
+      "he_jiankui",
+      1,
+      "You could be first to try a daring procedure on people, well ahead of any oversight.",
+      choice("Race ahead of the rules to be first", [
+        effect("curiosity", "up", "large"),
+        effect("care", "down", "large"),
+      ]),
+      choice("Wait for review and real consent to catch up", [
+        effect("care", "up", "large"),
+        effect("curiosity", "down", "medium"),
+      ]),
+      ["curiosity", "care"],
+    ),
+  ],
+  gary_strobel: [
+    flavorCard(
+      "gary_strobel",
+      1,
+      "You want to test a living agent out in the open before the permits clear.",
+      choice("Release it now and ask forgiveness later", [
+        effect("curiosity", "up", "medium"),
+        effect("care", "down", "large"),
+      ]),
+      choice("Hold until the approvals come through", [
+        effect("care", "up", "medium"),
+        effect("curiosity", "down", "small"),
+      ]),
+      ["curiosity", "care"],
+    ),
+  ],
+  purdue_sackler: [
+    flavorCard(
+      "purdue_sackler",
+      1,
+      "Sales would soar if you quietly downplay how risky the product can be.",
+      choice("Soften the warnings to boost sales", [
+        effect("cash", "up", "large"),
+        effect("care", "down", "large"),
+      ]),
+      choice("Keep the warnings blunt and honest", [
+        effect("care", "up", "large"),
+        effect("cash", "down", "medium"),
+      ]),
+      ["cash", "care"],
+    ),
+  ],
+  jan_hendrik_schon: [
+    flavorCard(
+      "jan_hendrik_schon",
+      1,
+      "One more spectacular figure would keep the funding and the fame rolling in.",
+      choice("Polish the figure past what the data support", [
+        effect("cash", "up", "large"),
+        effect("credibility", "down", "large"),
+      ]),
+      choice("Show the unglamorous real measurement", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      ["cash", "credibility"],
+    ),
+  ],
+  diederik_stapel: [
+    flavorCard(
+      "diederik_stapel",
+      1,
+      "A perfectly clean dataset would make a far better story than your messy one.",
+      choice("Tidy the numbers until the story sings", [
+        effect("cash", "up", "medium"),
+        effect("credibility", "down", "large"),
+      ]),
+      choice("Publish the messy, honest results", [
+        effect("credibility", "up", "medium"),
+        effect("cash", "down", "small"),
+      ]),
+      ["cash", "credibility"],
+    ),
+  ],
+  paolo_macchiarini: [
+    flavorCard(
+      "paolo_macchiarini",
+      1,
+      "A desperate patient asks for an unproven procedure you have never truly tested.",
+      choice("Attempt the dramatic, untested fix", [
+        effect("curiosity", "up", "large"),
+        effect("care", "down", "large"),
+      ]),
+      choice("Refuse until it is shown to be safe", [
+        effect("care", "up", "large"),
+        effect("curiosity", "down", "medium"),
+      ]),
+      ["curiosity", "care"],
+    ),
+  ],
+  haruko_obokata: [
+    flavorCard(
+      "haruko_obokata",
+      1,
+      "A simple, astonishing result would make you famous overnight if it holds.",
+      choice("Announce the breakthrough before it is solid", [
+        effect("cash", "up", "large"),
+        effect("credibility", "down", "large"),
+      ]),
+      choice("Repeat the work until it is reproducible", [
+        effect("credibility", "up", "large"),
+        effect("cash", "down", "small"),
+      ]),
+      ["cash", "credibility"],
+    ),
+  ],
 };
 
 //============================================
@@ -721,4 +883,33 @@ export const SCIENTIST_SOURCE_NOTES: Record<ScientistId, readonly SourceNote[]> 
       "https://www.pennmedicine.org/news/news-releases/2023/october/katalin-kariko-and-drew-weissman-win-2023-nobel-prize-in-medicine",
     ),
   ],
+  andrew_wakefield: [
+    source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Andrew_Wakefield"),
+    source("BMJ: how the fraud was uncovered", "https://www.bmj.com/content/342/bmj.c5347"),
+    source(
+      "Retraction notice (The Lancet)",
+      "https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(10)60175-4/fulltext",
+    ),
+  ],
+  hwang_woosuk: [source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Hwang_Woo-suk")],
+  he_jiankui: [source("Wikipedia: the affair", "https://en.wikipedia.org/wiki/He_Jiankui_affair")],
+  gary_strobel: [
+    source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Gary_Strobel"),
+    source(
+      "NYT: unauthorized field release halted",
+      "https://www.nytimes.com/1987/09/04/us/tearful-scientist-halts-gene-test.html",
+    ),
+  ],
+  purdue_sackler: [
+    source("Wikipedia: the company", "https://en.wikipedia.org/wiki/Purdue_Pharma"),
+    source("Wikipedia: the family", "https://en.wikipedia.org/wiki/Sackler_family"),
+  ],
+  jan_hendrik_schon: [
+    source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Jan_Hendrik_Sch%C3%B6n"),
+  ],
+  diederik_stapel: [source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Diederik_Stapel")],
+  paolo_macchiarini: [
+    source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Paolo_Macchiarini"),
+  ],
+  haruko_obokata: [source("Wikipedia: the case", "https://en.wikipedia.org/wiki/Haruko_Obokata")],
 };

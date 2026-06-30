@@ -22,10 +22,12 @@ local-storage persistence all live under [src/](../src/).
   and the `LEAK_TERM_DENYLIST` that keeps scientist identities out of run-phase cards.
 - [src/engine.ts](../src/engine.ts): pure game-state transitions for the blind run and result
   phase; seeded RNG (mulberry32); weighted draw with `FLAVOR_POOL` injection; `rankSignatures`
-  (Euclidean distance over all five `SCIENTIST_SIGNATURE` vectors); `matchExplanation`
-  (plain-language rationale from most decisive stats); and stat clamp to [0, 100] with no
-  collapse condition.
-- [src/storage.ts](../src/storage.ts): v2 versioned local-storage load, save, and reset helpers.
+  (Euclidean distance over the matched pool -- five celebrated or nine disgraced
+  `SCIENTIST_SIGNATURE` vectors); `matchExplanation` / `downfallExplanation` (plain-language
+  rationale from most decisive stats); a stat floor at 0 with no upper cap; and `toResultState`
+  downfall routing when credibility drops to `DISGRACE_FLOOR` or any stat exceeds
+  `STAT_NORMAL_MAX`.
+- [src/storage.ts](../src/storage.ts): v3 versioned local-storage load, save, and reset helpers.
 - [src/input_controller.ts](../src/input_controller.ts): swipe, keyboard, and button input wiring.
 - [src/ui_renderer.ts](../src/ui_renderer.ts): DOM rendering for the blind run phase (cards,
   stats, strain texture) and the result reveal screen (match headline, explanation, per-C
@@ -39,11 +41,13 @@ local-storage persistence all live under [src/](../src/).
   the result reveal screen once all `RUN_LENGTH` questions are answered.
 - [src/input_controller.ts](../src/input_controller.ts) maps swipe and keyboard input to the same
   choice handlers used by the rendered buttons.
-- [src/engine.ts](../src/engine.ts) applies the chosen option, updates four-C stats (clamped
-  0-100), advances the draw sequence (injecting a flavor card when the internal leader clears
-  `FLAVOR_MIN_MARGIN`), and returns the next immutable state shape. When the run is complete,
-  `rankSignatures` compares the final stat profile to all five `SCIENTIST_SIGNATURE` vectors
-  and `matchExplanation` builds the plain-language result.
+- [src/engine.ts](../src/engine.ts) applies the chosen option, updates four-C stats (floored at
+  0, no upper cap), advances the draw sequence (injecting a flavor card when the internal leader
+  clears `FLAVOR_MIN_MARGIN`), and returns the next immutable state shape. When the run is
+  complete, `toResultState` picks the celebrated or disgraced pool (downfall on a credibility
+  collapse or any extreme stat), `rankSignatures` compares the final stat profile to that pool's
+  `SCIENTIST_SIGNATURE` vectors, and `matchExplanation` / `downfallExplanation` builds the
+  plain-language result.
 - [src/storage.ts](../src/storage.ts) persists the current state in browser `localStorage`.
 
 ## Testing and verification

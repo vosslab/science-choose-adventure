@@ -7,11 +7,11 @@ import {
   type StrainLine,
 } from "./engine";
 
-const SAVE_VERSION = 2;
-const STORAGE_KEY = "science_career_survival:v2";
+const SAVE_VERSION = 3;
+const STORAGE_KEY = "science_career_survival:v3";
 
-type SaveFileV2 = {
-  readonly version: 2;
+type SaveFileV3 = {
+  readonly version: 3;
   readonly state: GameState;
 };
 
@@ -135,22 +135,23 @@ function isGameState(value: unknown): value is GameState {
     return true;
   }
   if (value.phase === "result") {
-    // The result phase adds a matched scientist, ranking, and plain-language explanation.
+    // The result phase adds a matched scientist, tone, ranking, and plain-language explanation.
     const hasScientist = isScientistId(value.scientistId);
+    const hasTone = value.tone === "celebrated" || value.tone === "disgraced";
     const hasRanking = isRankingArray(value.ranking);
     const hasExplanation = typeof value.explanation === "string";
-    return hasScientist && hasRanking && hasExplanation;
+    return hasScientist && hasTone && hasRanking && hasExplanation;
   }
   // Unknown phase (old v1 "prologue"/"path"/"ending" or any future shape): reject.
   return false;
 }
 
-function isSaveFileV2(value: unknown): value is SaveFileV2 {
+function isSaveFileV3(value: unknown): value is SaveFileV3 {
   if (!isRecord(value)) {
     return false;
   }
   // Reject any save file whose version does not match this slot's expected version.
-  // Old v1 blobs have version: 1 and will correctly fail here, triggering a fresh run.
+  // Old v1/v2 blobs will correctly fail here, triggering a fresh run (no migration).
   const validSave = value.version === SAVE_VERSION && isGameState(value.state);
   return validSave;
 }
@@ -166,22 +167,22 @@ export function loadGameState(storage: Storage): GameState {
     return createInitialState();
   }
   // Malformed JSON or wrong version/shape: start a fresh run rather than crashing.
-  // Old v1 saves (phase: "prologue"/"path"/"ending", routeScores, collapse) will fail
-  // isSaveFileV2 and land here -- that is the intended no-migration behavior.
+  // Old v1/v2 saves (phase: "prologue"/"path"/"ending", routeScores, collapse, missing tone)
+  // will fail isSaveFileV3 and land here -- that is the intended no-migration behavior.
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     return createInitialState();
   }
-  if (!isSaveFileV2(parsed)) {
+  if (!isSaveFileV3(parsed)) {
     return createInitialState();
   }
   return parsed.state;
 }
 
 export function saveGameState(storage: Storage, state: GameState): void {
-  const saveFile: SaveFileV2 = { version: SAVE_VERSION, state };
+  const saveFile: SaveFileV3 = { version: SAVE_VERSION, state };
   storage.setItem(STORAGE_KEY, JSON.stringify(saveFile));
 }
 

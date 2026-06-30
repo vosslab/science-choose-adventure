@@ -1,4 +1,5 @@
 import {
+  DISGRACE_FLOOR,
   DRAW_WEIGHT_BASE,
   FLAVOR_EVERY,
   FLAVOR_MIN_MARGIN,
@@ -11,10 +12,12 @@ import {
   STARTING_STAT_VALUE,
   STAT_CONFIG,
   STAT_IDS,
+  STAT_NORMAL_MAX,
   lowRisk,
   statBand,
   type EffectDirection,
   type ScientistId,
+  type ScientistKind,
   type StatId,
 } from "./config";
 import { CORE_DECK, FLAVOR_POOL, type CareerCard, type Choice } from "./content";
@@ -55,6 +58,9 @@ export type GameState =
       readonly phase: "result";
       readonly stats: StatValues;
       readonly scientistId: ScientistId;
+      // Which pool produced the match: "celebrated" for an honest run, "disgraced" for a
+      // downfall run that bottomed out credibility. Drives the reveal headline and theme.
+      readonly tone: ScientistKind;
       readonly ranking: readonly RankingEntry[];
       readonly explanation: string;
       readonly seed: number;
@@ -88,6 +94,9 @@ export type VisibleCard =
       readonly kind: "result";
       readonly scientistId: ScientistId;
       readonly scientistName: string;
+      // Mirrors GameState's result tone so the renderer can pick the celebrated or
+      // downfall headline and theme without re-deriving the pool.
+      readonly tone: ScientistKind;
       readonly headline: string;
       readonly explanation: string;
       readonly rationale: Record<StatId, string>;
@@ -139,13 +148,12 @@ function initialStats(): StatValues {
   return stats;
 }
 
-// Clamp a single stat into the playable [0, 100] band so extremes never overflow.
-function clampStat(value: number): number {
+// Floor a single stat at 0. There is no upper bound: a hard-pushed stat climbs without
+// limit into the extreme band, and any value past the normal ceiling (STAT_NORMAL_MAX)
+// routes the run to the disgraced downfall pool (see toResultState).
+function floorStat(value: number): number {
   if (value < 0) {
     return 0;
-  }
-  if (value > 100) {
-    return 100;
   }
   return value;
 }
@@ -155,8 +163,9 @@ function applyChoiceEffects(stats: StatValues, choice: Choice): StatValues {
   for (const choiceEffect of choice.effects) {
     const config = MAGNITUDE_CONFIG[choiceEffect.magnitude];
     const signedDelta = choiceEffect.direction === "up" ? config.delta : -config.delta;
-    // Clamp after each effect so a card can never push a stat past 0 or 100.
-    nextStats[choiceEffect.stat] = clampStat(nextStats[choiceEffect.stat] + signedDelta);
+    // Floor after each effect so a stat can never go below 0. There is no upper cap:
+    // extreme values are intentional and route the run to the disgraced downfall pool.
+    nextStats[choiceEffect.stat] = floorStat(nextStats[choiceEffect.stat] + signedDelta);
   }
   return nextStats;
 }
@@ -209,11 +218,29 @@ function signatureDistance(stats: StatValues, scientistId: ScientistId): number 
   return distance;
 }
 
-// Sort all scientists by ascending distance to their signature. Ties break by the fixed
-// SCIENTIST_IDS order so the ranking (and the named leader) is fully deterministic.
-export function rankSignatures(stats: StatValues): readonly RankingEntry[] {
+// The celebrated resemblance targets: the pool an honest run matches against.
+function celebratedIds(): readonly ScientistId[] {
+  const ids = SCIENTIST_IDS.filter((id) => SCIENTIST_CONFIG[id].kind === "celebrated");
+  return ids;
+}
+
+// The disgraced cautionary cases: the pool the downfall branch matches against.
+function disgracedIds(): readonly ScientistId[] {
+  const ids = SCIENTIST_IDS.filter((id) => SCIENTIST_CONFIG[id].kind === "disgraced");
+  return ids;
+}
+
+// Sort one pool of scientists by ascending distance to their signature. The pool is the
+// subset to rank within (celebrated or disgraced); it defaults to the celebrated pool, never
+// the mixed roster, so a caller that omits the pool cannot accidentally rank the two pools
+// together. Ties break by the fixed SCIENTIST_IDS order so the ranking (and the named leader)
+// is fully deterministic regardless of the pool's order.
+export function rankSignatures(
+  stats: StatValues,
+  pool: readonly ScientistId[] = celebratedIds(),
+): readonly RankingEntry[] {
   const entries: RankingEntry[] = [];
-  for (const scientistId of SCIENTIST_IDS) {
+  for (const scientistId of pool) {
     const distance = signatureDistance(stats, scientistId);
     entries.push({ scientistId, distance });
   }
@@ -228,17 +255,17 @@ export function rankSignatures(stats: StatValues): readonly RankingEntry[] {
   return entries;
 }
 
-// Build a plain-language match sentence from the two or three most-decisive Cs (those
-// furthest from the neutral 50, high or low), naming direction in words and never numbers.
-function matchExplanation(stats: StatValues): string {
-  // Rank stats by how far they sit from neutral so the most-decisive Cs lead the sentence.
+// Order the 4C stats by how far they sit from the neutral 50 start (most-decisive first),
+// then keep the two or three that genuinely lean off-neutral. Ties break by the fixed
+// STAT_IDS order so any explanation built from this list is fully deterministic.
+function decisiveStats(stats: StatValues): readonly StatId[] {
   const ordered: readonly StatId[] = [...STAT_IDS].sort((first, second) => {
     const firstSpread = Math.abs(stats[first] - STARTING_STAT_VALUE);
     const secondSpread = Math.abs(stats[second] - STARTING_STAT_VALUE);
     if (firstSpread !== secondSpread) {
       return secondSpread - firstSpread;
     }
-    // Stable tie-break by STAT_IDS order keeps the sentence deterministic.
+    // Stable tie-break by STAT_IDS order keeps the ordering deterministic.
     return STAT_IDS.indexOf(first) - STAT_IDS.indexOf(second);
   });
   // Use three decisive Cs when the third still leans off-neutral, otherwise two.
@@ -246,26 +273,53 @@ function matchExplanation(stats: StatValues): string {
   const thirdSpread =
     thirdStat === undefined ? 0 : Math.abs(stats[thirdStat] - STARTING_STAT_VALUE);
   const decisiveCount = thirdSpread > 0 ? 3 : 2;
-  const phrases: string[] = [];
-  for (const statId of ordered.slice(0, decisiveCount)) {
-    const label = STAT_CONFIG[statId].label.toLowerCase();
-    const lean = stats[statId] >= STARTING_STAT_VALUE ? "stayed high" : "stayed low";
-    phrases.push(`${label} ${lean}`);
-  }
-  // Join with commas and a trailing "and" for natural reading. The last phrase joins with
-  // " and "; any earlier phrases join with ", ".
+  const decisive = ordered.slice(0, decisiveCount);
+  return decisive;
+}
+
+// Join short stat phrases into one capitalized sentence. The last phrase joins with " and ";
+// any earlier phrases join with ", ". Shared by both explanation tones so separators and
+// capitalization stay identical.
+function joinDecisivePhrases(phrases: readonly string[]): string {
   const lastPhrase = phrases[phrases.length - 1] ?? "";
   const leadingPhrases = phrases.slice(0, -1);
   const joined =
     leadingPhrases.length === 0 ? lastPhrase : `${leadingPhrases.join(", ")} and ${lastPhrase}`;
   const firstPhrase = phrases[0] ?? "";
   const capitalizedFirst = firstPhrase.charAt(0).toUpperCase() + firstPhrase.slice(1);
-  // Graft the capitalized first phrase onto the already-joined string so the separators are not rebuilt.
+  // Graft the capitalized first phrase onto the already-joined string so separators are not rebuilt.
   const restOfJoined =
     leadingPhrases.length === 0
       ? capitalizedFirst
       : `${capitalizedFirst}${joined.slice(firstPhrase.length)}`;
-  const explanation = `${restOfJoined}.`;
+  const sentence = `${restOfJoined}.`;
+  return sentence;
+}
+
+// Build a plain-language match sentence from the two or three most-decisive Cs, naming
+// direction in words and never numbers. Used for the celebrated (honest-run) reveal.
+function matchExplanation(stats: StatValues): string {
+  const phrases: string[] = [];
+  for (const statId of decisiveStats(stats)) {
+    const label = STAT_CONFIG[statId].label.toLowerCase();
+    const lean = stats[statId] >= STARTING_STAT_VALUE ? "stayed high" : "stayed low";
+    phrases.push(`${label} ${lean}`);
+  }
+  const explanation = joinDecisivePhrases(phrases);
+  return explanation;
+}
+
+// Build a plain-language downfall sentence from the two or three most-decisive Cs, framed
+// as a cautionary collapse. A stat below neutral "cratered"; a stat above neutral "ran hot".
+// Words only, no digits, so the engine-flow digit-free assertion holds for this tone too.
+function downfallExplanation(stats: StatValues): string {
+  const phrases: string[] = [];
+  for (const statId of decisiveStats(stats)) {
+    const label = STAT_CONFIG[statId].label.toLowerCase();
+    const lean = stats[statId] >= STARTING_STAT_VALUE ? "ran hot" : "cratered";
+    phrases.push(`${label} ${lean}`);
+  }
+  const explanation = joinDecisivePhrases(phrases);
   return explanation;
 }
 
@@ -329,7 +383,10 @@ function weightedPick(
 // distance. The leader is the nearest scientist; the margin guards against an unstable
 // front-runner so flavor only appears once an identity has genuinely emerged.
 function flavorLeader(stats: StatValues): ScientistId | undefined {
-  const ranking = rankSignatures(stats);
+  // Rank within the celebrated pool only: mid-run flavor surfaces an emerging celebrated
+  // identity, never a disgraced one, so the blind run stays identical and the downfall pool
+  // is reachable only at the end-of-run reveal.
+  const ranking = rankSignatures(stats, celebratedIds());
   const leader = ranking[0];
   const runnerUp = ranking[1];
   if (leader === undefined || runnerUp === undefined) {
@@ -427,17 +484,31 @@ function toResultState(
   lastEffectMagnitude: string,
   seed: number,
 ): GameState {
-  const ranking = rankSignatures(stats);
+  // Downfall when integrity collapses OR when any stat is driven into the extreme band.
+  // A final credibility at or below DISGRACE_FLOOR, or any 4C stat pushed past the normal
+  // ceiling (STAT_NORMAL_MAX), routes the match into the disgraced pool, else the
+  // celebrated pool. Extreme hubris in any direction lands you in disgrace; the raw extreme
+  // value then pulls the match toward the case that shares that extreme (extreme cash
+  // toward the profit-harm case, extreme curiosity toward the reckless-research case, and
+  // so on). The two pools are ranked separately so a disgraced figure is reachable only
+  // through this branch.
+  const extreme = STAT_IDS.some((statId) => stats[statId] > STAT_NORMAL_MAX);
+  const downfall = stats.credibility <= DISGRACE_FLOOR || extreme;
+  const tone: ScientistKind = downfall ? "disgraced" : "celebrated";
+  const pool = downfall ? disgracedIds() : celebratedIds();
+  const ranking = rankSignatures(stats, pool);
   const leader = ranking[0];
   if (leader === undefined) {
     throw new Error("Signature ranking is empty; no scientist to match.");
   }
   const scientistId = leader.scientistId;
-  const explanation = matchExplanation(stats);
+  // Celebrated runs get the match sentence; downfall runs get the cautionary collapse line.
+  const explanation = downfall ? downfallExplanation(stats) : matchExplanation(stats);
   const resultState: GameState = {
     phase: "result",
     stats,
     scientistId,
+    tone,
     ranking,
     explanation,
     seed,
@@ -543,7 +614,13 @@ function runVisibleCard(state: Extract<GameState, { phase: "run" }>): VisibleCar
 
 function resultVisibleCard(state: Extract<GameState, { phase: "result" }>): VisibleCard {
   const scientistName = SCIENTIST_CONFIG[state.scientistId].name;
-  const headline = `You most resemble ${scientistName}`;
+  // The headline is the final display string for both tones: a celebrated resemblance, or a
+  // disgraced case echo ("Your choices echo the {name} case.") so company/regulatory cases
+  // frame correctly without implying personal resemblance. The renderer shows it verbatim.
+  const headline =
+    state.tone === "disgraced"
+      ? `Your choices echo the ${scientistName} case.`
+      : `You most resemble ${scientistName}.`;
   const rationale = SCIENTIST_SIGNATURE[state.scientistId].rationale;
   const ranking = state.ranking.map((entry) => {
     const named = {
@@ -556,6 +633,7 @@ function resultVisibleCard(state: Extract<GameState, { phase: "result" }>): Visi
     kind: "result",
     scientistId: state.scientistId,
     scientistName,
+    tone: state.tone,
     headline,
     explanation: state.explanation,
     rationale,

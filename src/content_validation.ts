@@ -3,6 +3,7 @@ import {
   SCIENTIST_IDS,
   SCIENTIST_SIGNATURE,
   STAT_IDS,
+  STAT_NORMAL_MAX,
   type ScientistId,
   type StatId,
 } from "./config";
@@ -29,6 +30,24 @@ export const LEAK_TERM_DENYLIST: readonly string[] = [
   "mold plate",
   "penicillin",
   "crispr",
+  // Disgraced / cautionary cases -- prevent mid-run identity leaks
+  "wakefield",
+  "hwang",
+  "woo-suk",
+  "he jiankui",
+  "jiankui",
+  "strobel",
+  "sackler",
+  "purdue",
+  "oxycontin",
+  "schon",
+  "stapel",
+  "macchiarini",
+  "obokata",
+  "mmr",
+  "autism",
+  // "stap" alone also catches "stap cell" (substring match), so no separate entry is needed.
+  "stap",
 ];
 
 // Minimum number of core cards for a 12-card pilot run with re-draw headroom.
@@ -161,18 +180,19 @@ function checkFlavorPoolCoverage(issues: ValidationIssue[]): void {
   }
 }
 
-// Check f: SCIENTIST_SIGNATURE values in [0,100], rationale non-empty for all
-// 4 Cs, and pairwise Euclidean distance >= FLAVOR_MIN_MARGIN.
+// Check f: SCIENTIST_SIGNATURE values in [0, STAT_NORMAL_MAX], rationale non-empty for all
+// 4 Cs, and pairwise Euclidean distance >= FLAVOR_MIN_MARGIN. Signatures are authored within
+// the normal range even though gameplay stats can climb past it into the extreme band.
 function checkSignatures(issues: ValidationIssue[]): void {
   for (const scientistId of SCIENTIST_IDS) {
     const sig = SCIENTIST_SIGNATURE[scientistId];
     for (const stat of STAT_IDS) {
       const val = sig.values[stat];
-      if (val < 0 || val > 100) {
+      if (val < 0 || val > STAT_NORMAL_MAX) {
         issues.push(
           issue(
             "signature_out_of_range",
-            `Signature for "${scientistId}" has "${stat}" = ${val} outside [0, 100].`,
+            `Signature for "${scientistId}" has "${stat}" = ${val} outside [0, ${STAT_NORMAL_MAX}].`,
           ),
         );
       }

@@ -1,8 +1,87 @@
 # Changelog
 
+## 2026-06-30
+
+### Additions and New Features
+
+- Added a prominent "Play it now in your browser" link to README.md pointing to the live GitHub
+  Pages instance at https://vosslab.github.io/science-choose-adventure/. Placed immediately after
+  the first paragraph (the GitHub About description paragraph) and before the Quick start section,
+  per the repo rule that the first paragraph must remain pure prose.
+
+### Behavior or Interface Changes
+
+- L3: Event-card origin is now threaded through the draw result instead of re-derived by a
+  renderer-side rescan. `drawNextCard` in `src/engine.ts` sets `isEvent: true` once, on the
+  event-injection branch (the same branch that calls `eligibleEventCard`); its return type gains
+  an optional `readonly isEvent?: boolean`. `runVisibleCard` now reads `drawn.isEvent` to set the
+  run `VisibleCard.isEvent` field, replacing the prior `isEventCard(drawn.card.id)` EVENT_DECK
+  rescan at visible-card construction. `src/ui_renderer.ts` is unchanged: it still reads
+  `visibleCard.isEvent`; only the upstream data source moved. The duplicated classification path
+  is gone, so the run-card "Rare event" affordance can no longer drift from the draw decision.
+
+### Fixes and Maintenance
+
+- M2: Added a pool-membership guard at the public `signatureDistance` entry point in
+  `src/selection.ts`. The z-score normalizers are derived from the supplied `pool`, so scoring a
+  scientist absent from that pool normalized against the wrong reference distribution and silently
+  returned a misleading distance. The guard now throws an `Error` naming the id and the pool when
+  the scientist is not a member. It runs once at the public boundary, never inside the
+  per-scientist normalizer loop, so `rankSignatures` (which only ever passes pool members through
+  `signatureDistanceWithNormalizers`) is unaffected and pays no per-iteration cost. Correct-pool
+  ranking results are byte-for-byte unchanged.
+
+### Removals and Deprecations
+
+- L3: Removed the now-dead `isEventCard(id)` helper from `src/engine.ts`. Its only caller was the
+  renderer-facing rescan that L3 replaced with the draw-result `isEvent` flag; the selection
+  eligibility path (`eligibleEventCard`) filters `EVENT_DECK` directly and never used it.
+
+### Developer Tests and Notes
+
+- Added two tests to `tests/test_engine_flow.mjs`: test s asserts `signatureDistance` throws when a
+  `disgracedIds()[0]` scientist is scored against the `celebratedIds()` pool (and that a
+  correct-pool call returns a finite number); test t forces an event draw via an extreme-band state
+  (cash past `STAT_NORMAL_MAX`) and asserts the resulting visible card carries `isEvent === true`,
+  while a normal-range fresh state's visible card does not. Ids come from the exported
+  `celebratedIds()`/`disgracedIds()` helpers, not hardcoded names. All checks pass: `npm run check`
+  reports "PASS: 5 checks passed." (including the engine.ts and selection.ts determinism static
+  tests), 21 node tests pass, `npm run build` builds `dist/`, and `npm run test:playwright` reports
+  "3 passed".
+
 ## 2026-06-29
 
 ### Additions and New Features
+
+- screenshot-docs: Captured three browser screenshots from the built `dist/` via Playwright
+  and added a managed "## Screenshots" section to `README.md` (begin/end sentinels) embedding
+  `docs/screenshots/start_screen.png`, `docs/screenshots/run_card.png`, and
+  `docs/screenshots/result_reveal.png`. All three screenshots were re-captured at 1280x720
+  (16:9) after the hybrid-reveal ("between X and Y" headline) and event-card styling landed;
+  slugs are stable so a re-run overwrites in place.
+
+- WP-6 (WS6): Added conditional effects. `Effect` in `src/content.ts` gains two optional
+  fields: `whenStatAtLeast?: { stat: StatId; value: number }` (a minimal at-least threshold
+  on one stat) and `then?: { direction?: EffectDirection; magnitude?: EffectMagnitude }`
+  (the alternate swapped in when the condition holds; omitted fields fall back to the base).
+  Added exported types `EffectCondition`, `EffectSwap`, and an exported sibling helper
+  `conditionalEffect(...)` so card authors (WS8) can build conditional effects ergonomically.
+  In `src/engine.ts`, `applyChoiceEffects` now resolves each effect through new
+  `resolveEffect(effect, preEffectStats)`, evaluating the condition against the pre-effect
+  stats snapshot (the original `stats` argument), so an earlier effect in the same choice
+  can never change how a later effect's condition resolves -- resolution is order-independent
+  and deterministic. The target stat is never swapped and every magnitude is a nonzero delta,
+  so a probed stat is affected under every resolution; the probe-subset rule stays decidable
+  from the static `stat` fields alone (WS9). Floor-at-0/no-cap behavior via `floorStat` is
+  unchanged; existing unconditional cards behave identically. All 5 checks pass.
+
+- WP-2 (WS2): Added optional `weights?: Record<StatId, number>` field to the
+  `SCIENTIST_SIGNATURE` entry type in `src/config.ts`. No entry carries weights yet
+  (WS5 fills those in); the field is purely a type seam. Added exported helper
+  `signatureWeights(id: ScientistId): Record<StatId, number>` that returns the entry's
+  `weights` when present, otherwise returns a uniform default of 1 for every `StatId`
+  built dynamically from `STAT_IDS` so it stays in sync if stats change. All 5 checks
+  pass; no ranking behavior changes since every call returns all 1s.
 
 - Patch 1: Extended `SCIENTIST_IDS` in `src/config.ts` with 9 disgraced cautionary
   cases: `andrew_wakefield`, `hwang_woosuk`, `he_jiankui`, `gary_strobel`,
@@ -43,6 +122,50 @@
   `renderStats` sizes the meter grid columns to the live step count so segments stay on
   one row.
 
+- WS1 (Patch 1): Extracted `signatureDistance` and `rankSignatures` from `src/engine.ts`
+  to a new `src/selection.ts` module; `src/engine.ts` re-exports both for backward
+  compatibility. Added `statHistory: readonly StatValues[]` (initial 4C vector at index 0,
+  one post-card snapshot per answered card) and `pendingCardIds: readonly CardId[]`
+  (branch draw queue, initialized empty) to both phases of `GameState`. Both fields are
+  carried through all state transitions without loss.
+- WS3 (Patch 3): Upgraded the resemblance metric in `src/selection.ts` from raw Euclidean
+  to a normalized + weighted + cosine blend. Per-axis z-score normalization uses the active
+  pool's population mean and standard deviation so an axis with naturally wider spread does
+  not dominate. Per-scientist `signatureWeights()` multiply each squared axis term. A
+  cosine-similarity term (`COSINE_BLEND_WEIGHT = 0.25`) on the raw vectors is added as a
+  shape nudge. Zero-variance axes contribute nothing. A run exactly on a signature still
+  ranks that scientist first; the `SCIENTIST_IDS` tie-break and no-`Math.random` contract
+  are preserved.
+- WS4 (Patch 4): Added margin-hybrid result and trajectory signal. `HYBRID_MARGIN = 0.4`
+  (on the blended z-score + cosine scale): when the top-two resemblance scores differ by
+  less than the effective margin, the result carries `blended: true`, `secondaryScientistId`,
+  and the headline reads "You land between X and Y." (celebrated) or "Your choices echo both
+  the X and Y cases." (disgraced). The leader (`ranking[0]`) is never changed.
+  `trajectorySignal()` reads `statHistory` to derive peak stat + timing (early vs late) and
+  volatility (total path movement vs net displacement); produces a digit-free `trajectoryNote`
+  on every result and applies a bounded margin shift: a decisive (early, steady) run tightens
+  the hybrid window; an indecisive (late surge or swinging) run widens it.
+- WS5 (Patch 5): Filled in per-scientist `weights` in `SCIENTIST_SIGNATURE` for all 14
+  entries (5 celebrated + 9 disgraced), emphasizing each scientist's defining Cs (for
+  example, Purdue/Sackler cash-dominant at 2.5, He Jiankui curiosity-dominant at 2.5).
+- WS7 (Patch 7): Extended the draw scheduler (`drawNextCard`) with a four-priority system:
+  (1) a pending branch card from `pendingCardIds` (deterministic, no RNG consumed); (2) a
+  seeded event card from `EVENT_DECK` only while some stat exceeds `STAT_NORMAL_MAX`;
+  (3) a leader flavor card on the `FLAVOR_EVERY` cadence; (4) a weighted core draw
+  excluding cards asked within `COOLDOWN_WINDOW = RUN_LENGTH` draws. Behavior is
+  byte-identical to prior when `EVENT_DECK` is empty and `pendingCardIds` is empty.
+- WS8 (Patch 8): Enlarged `CORE_DECK` past the >= 18 card floor enforced by content
+  validation. Added `EVENT_DECK` of four extreme-gated event cards (`event_cash_1`,
+  `event_curiosity_1`, `event_care_1`, `event_credibility_1`); each probes the same stat
+  it is gated on; all prompts pass the `LEAK_TERM_DENYLIST`. Added one branch link:
+  core_27 choice A carries `unlocks: core_28`, so the follow-up card appears
+  deterministically on the next draw.
+- WS9 (Patch 9): Extended `validateContent()` in `src/content_validation.ts` to cover:
+  probe-subset holds on conditional-effect cards (target stat never changes under any
+  resolution); every `Choice.unlocks` id resolves to a real `CORE_DECK` or `EVENT_DECK`
+  card; event-deck prompts pass the `LEAK_TERM_DENYLIST`; each event-deck card probes at
+  least one stat that can enter the extreme band.
+
 ### Behavior or Interface Changes
 
 - The outcome model now has two match pools. A final `credibility <= DISGRACE_FLOOR`
@@ -65,6 +188,21 @@
   cash toward the profit-harm case, extreme curiosity toward the reckless-research
   case). Resemblance for non-extreme runs is byte-identical to before, since those
   runs never exceeded 100.
+- WS1 (Patch 1): Storage version bumped from v3 to v4 (`STORAGE_KEY` changed to
+  `science_career_survival:v4`, `version: 4`). Old v3 saves are discarded on load with
+  no migration. The tolerant garbage-blob parse behavior is unchanged for malformed data.
+- WS10 (Patch 10): Result reveal renders a hybrid "between X and Y" headline when
+  `blended` is true; the blend partner is highlighted in the ranking list with a "blend"
+  tag. The trajectory note sentence (`trajectoryNote`) appears below the explanation on
+  every result screen. Event-origin cards display a neutral "Rare event" affordance
+  (`data-event="true"` on the card element, styled distinctly in `src/style.css`).
+- Extracted the inline trajectory-shift fraction to a named constant and simplified the
+  `choice()` unlocks construction in `src/content.ts` (no behavior change); axis
+  normalizers are computed once per ranking call in `src/selection.ts` (pure
+  de-duplication, identical results).
+- Exported `checkBranchTargets` and `checkEventCoverage` from
+  `src/content_validation.ts` (now parameterized) so their rejection paths are
+  unit-testable; `validateContent()` behavior is unchanged.
 
 ### Fixes and Maintenance
 
@@ -76,6 +214,20 @@
   `kind` and `caseType` fields, `DISGRACE_FLOOR`, the downfall branch, the
   leak-term rule for disgraced flavor prompts, all 14 signatures in
   `SCIENTIST_SIGNATURE`, and the v3 save envelope with `tone` in the result phase.
+- Removed planning-scaffolding tokens and corrected stale "future work" comments
+  across `src/engine.ts`, `src/content.ts`, `src/config.ts`,
+  `src/content_validation.ts`, and `src/selection.ts` so comments describe current
+  behavior.
+- Corrected stale `EVENT_DECK` "empty" comments in `src/engine.ts` (the event deck
+  now has cards).
+- Fixed a stale storage version reference in `docs/CODE_ARCHITECTURE.md` (v3 to v4).
+- Updated the screenshot note in this changelog to reflect that all three screenshots
+  were re-captured at 1280x720 after the hybrid reveal and event-card styling landed.
+
+### Removals and Deprecations
+
+- Dropped the unused `signatureDistance` re-export from `src/engine.ts`; it is
+  exported from `src/selection.ts` where it is used.
 
 ### Developer Tests and Notes
 
@@ -100,6 +252,29 @@
   downfall path is reachable through normal play. Test d's clamp range updated from
   `[0, 100]` to `[0, STAT_MAX_VALUE]`. All 12 engine-flow tests pass; npm run check
   still PASS on all 5 steps and `npm run build` succeeds.
+- WS11 (Patch 11): Added six new tests to `tests/test_engine_flow.mjs` covering all
+  eight advanced-selection + variable-choices features: (l) normalized/weighted metric
+  ranks differently from raw Euclidean at a known stats point; (m) result state carries
+  a digit-free `trajectoryNote` and a boolean `blended` field; (n) `signatureDistance`
+  gap is sub-unit near the midpoint of two celebrated signatures, confirming the hybrid
+  mechanism is reachable with the current weights; (o) `trajectoryNote` contains
+  peak-timing words and differs by run strategy; (p) conditional effect on `core_25`
+  choice A fires `"medium"` care when `cash >= 50` and `"small"` otherwise; (q) choosing
+  `core_27` choice A enqueues `core_28`, which appears in `askedIds` on the next draw;
+  (r) event card ids never appear in a normal-range run, and an extreme state draws one
+  immediately. All 19 engine-flow tests and all content-contract tests pass; `npm run
+  check` returns PASS on all 5 steps.
+- WS12 (Patch 12): Updated `docs/FILE_FORMATS.md` with v4 save format, `statHistory`,
+  `pendingCardIds`, per-scientist `weights`, hybrid result fields (`blended`,
+  `secondaryScientistId`, `trajectoryNote`), conditional effects, branch links,
+  `EVENT_DECK`, and cooldown. Updated `docs/CODE_ARCHITECTURE.md` to document
+  `src/selection.ts`. Updated `README.md` with richer-matching and variable-choices
+  overview. Reconciled all Patches 1-12 into this changelog block.
+- Added loud-failure guards so card-id-forced tests fail instead of silently skipping
+  on a rename; made the hybrid-margin test derive scientists from the celebrated pool
+  with a relative gap assertion; extended the determinism static check to also scan
+  `src/selection.ts`; added negative-fixture tests asserting `branch_target_missing`,
+  `event_deck_empty`, and `event_no_probes`.
 
 ## 2026-06-16
 

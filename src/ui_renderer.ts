@@ -339,6 +339,11 @@ function renderRunCard(
   // Per-side effects let the drag controller glow the affected meters before commit.
   card.dataset.left = effectsToData(choices[0].effects);
   card.dataset.right = effectsToData(choices[1].effects);
+  // Neutral "rare event" affordance: flag event-origin cards so style.css can give them a
+  // distinct treatment. This names no scientist and reveals nothing about the hidden identity.
+  if (visibleCard.kind === "run" && visibleCard.isEvent === true) {
+    card.dataset.event = "true";
+  }
 
   const effectText =
     state.lastEffectMagnitude === undefined
@@ -421,6 +426,14 @@ function renderResultExplanation(explanationText: string): HTMLElement {
   return block;
 }
 
+// Short run-shape sentence from the engine (peak timing and volatility), shown under the
+// explanation. Rendered verbatim; the renderer never recomputes this text. Guard at the
+// call site: only rendered when the field is present and non-empty.
+function renderTrajectoryNote(trajectoryNote: string): HTMLElement {
+  const note = makeElement("p", "trajectory-note", trajectoryNote);
+  return note;
+}
+
 // The matched scientist's per-C signature rationale: one line per stat, in STAT_IDS order,
 // pairing each stat label with the hand-authored reason from SCIENTIST_SIGNATURE.
 function renderResultRationale(rationale: Record<StatId, string>): HTMLElement {
@@ -440,9 +453,11 @@ function renderResultRationale(rationale: Record<StatId, string>): HTMLElement {
 // The ordered resemblance ranking, names only -- no raw distance numbers. The engine already
 // sorts the list nearest-first, so the first entry is the match and is marked with a modifier
 // class for CSS and Playwright. data-scientist carries the id for targeting without exposing
-// any number to the player.
+// any number to the player. When a blended result provides a secondaryScientistId, that entry
+// is also highlighted so both blend partners are visually distinguished.
 function renderResultRanking(
   ranking: readonly { readonly scientistId: ScientistId; readonly name: string }[],
+  secondaryScientistId?: ScientistId,
 ): HTMLElement {
   const block = makeElement("section", "ranking", undefined);
   block.setAttribute("aria-label", "Resemblance ranking");
@@ -450,13 +465,25 @@ function renderResultRanking(
   const list = makeElement("ol", "ranking__list", undefined);
   for (const [index, entry] of ranking.entries()) {
     const isMatch = index === 0;
-    const itemClass = isMatch ? "ranking__item ranking__item--match" : "ranking__item";
+    // Guard: only mark secondary when a secondaryScientistId is provided and matches.
+    const isSecondary =
+      secondaryScientistId !== undefined && entry.scientistId === secondaryScientistId;
+    let itemClass = "ranking__item";
+    if (isMatch) {
+      itemClass = "ranking__item ranking__item--match";
+    } else if (isSecondary) {
+      itemClass = "ranking__item ranking__item--secondary";
+    }
     const item = makeElement("li", itemClass, undefined);
     item.dataset.scientist = entry.scientistId;
     item.append(makeElement("span", "ranking__name", entry.name));
     if (isMatch) {
       // Label the leader as the match in words, never with a distance value.
       item.append(makeElement("span", "ranking__match-tag", "match"));
+    }
+    if (isSecondary) {
+      // Label the blend partner so the reader sees both poles of the hybrid headline.
+      item.append(makeElement("span", "ranking__secondary-tag", "blend"));
     }
     list.append(item);
   }
@@ -518,8 +545,20 @@ function renderResultCard(
   card.append(
     renderResultHeadline(visibleCard.headline, visibleCard.scientistId, visibleCard.tone),
     renderResultExplanation(visibleCard.explanation),
+  );
+
+  // Trajectory note: verbatim run-shape sentence from the engine (peak timing and volatility).
+  // Rendered below the explanation when present and non-empty. Guard: the field is optional
+  // for backward-compatibility with older saves and absent when statHistory is too short.
+  if (visibleCard.trajectoryNote !== undefined && visibleCard.trajectoryNote.length > 0) {
+    card.append(renderTrajectoryNote(visibleCard.trajectoryNote));
+  }
+
+  card.append(
     renderResultRationale(visibleCard.rationale),
-    renderResultRanking(visibleCard.ranking),
+    // Pass secondaryScientistId so the blend partner is visually highlighted in the ranking
+    // when the result is blended. Guard: undefined when not a blended result.
+    renderResultRanking(visibleCard.ranking, visibleCard.secondaryScientistId),
   );
 
   // Source notes appear only when the engine unlocked them for the matched scientist.

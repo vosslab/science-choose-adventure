@@ -7,11 +7,11 @@ import {
   type StrainLine,
 } from "./engine";
 
-const SAVE_VERSION = 3;
-const STORAGE_KEY = "science_career_survival:v3";
+const SAVE_VERSION = 4;
+const STORAGE_KEY = "science_career_survival:v4";
 
-type SaveFileV3 = {
-  readonly version: 3;
+type SaveFileV4 = {
+  readonly version: 4;
   readonly state: GameState;
 };
 
@@ -47,6 +47,23 @@ function isStatValues(value: unknown): value is StatValues {
     }
   }
   return true;
+}
+
+// Validate statHistory: an array where every entry is a well-shaped 4C StatValues snapshot.
+// Per the GameState convention, index 0 is the initial vector and each later index is a
+// post-card snapshot. A valid statHistory always has at least 1 entry (the initial stats
+// are written at run creation), so an empty array is rejected as a corrupt or stale save.
+function isStatValuesArray(value: unknown): value is readonly StatValues[] {
+  if (!Array.isArray(value)) {
+    return false;
+  }
+  // A stored statHistory must always carry the initial snapshot at index 0 (minimum length 1).
+  // An empty array signals a missing or pre-v4 save that omitted the history field.
+  if (value.length < 1) {
+    return false;
+  }
+  const everyEntry = value.every((entry) => isStatValues(entry));
+  return everyEntry;
 }
 
 function isStringArray(value: unknown): value is readonly string[] {
@@ -129,6 +146,15 @@ function isGameState(value: unknown): value is GameState {
   if (!isStringArray(value.unlockedExtras)) {
     return false;
   }
+  // New v4 fields: persisted run history and the pending draw/branch queue. statHistory is
+  // an array of 4C snapshots; pendingCardIds is a string array (branded CardId at the type
+  // level, a plain string on disk).
+  if (!isStatValuesArray(value.statHistory)) {
+    return false;
+  }
+  if (!isStringArray(value.pendingCardIds)) {
+    return false;
+  }
   // Phase-specific fields.
   if (value.phase === "run") {
     // The run phase has no additional required fields beyond the shared ones above.
@@ -146,12 +172,12 @@ function isGameState(value: unknown): value is GameState {
   return false;
 }
 
-function isSaveFileV3(value: unknown): value is SaveFileV3 {
+function isSaveFileV4(value: unknown): value is SaveFileV4 {
   if (!isRecord(value)) {
     return false;
   }
   // Reject any save file whose version does not match this slot's expected version.
-  // Old v1/v2 blobs will correctly fail here, triggering a fresh run (no migration).
+  // Old v1/v2/v3 blobs will correctly fail here, triggering a fresh run (no migration).
   const validSave = value.version === SAVE_VERSION && isGameState(value.state);
   return validSave;
 }
@@ -167,22 +193,23 @@ export function loadGameState(storage: Storage): GameState {
     return createInitialState();
   }
   // Malformed JSON or wrong version/shape: start a fresh run rather than crashing.
-  // Old v1/v2 saves (phase: "prologue"/"path"/"ending", routeScores, collapse, missing tone)
-  // will fail isSaveFileV3 and land here -- that is the intended no-migration behavior.
+  // Old v1/v2/v3 saves (earlier phases/shapes, or v3 state lacking statHistory and
+  // pendingCardIds) will fail isSaveFileV4 and land here -- that is the intended
+  // no-migration behavior.
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
   } catch {
     return createInitialState();
   }
-  if (!isSaveFileV3(parsed)) {
+  if (!isSaveFileV4(parsed)) {
     return createInitialState();
   }
   return parsed.state;
 }
 
 export function saveGameState(storage: Storage, state: GameState): void {
-  const saveFile: SaveFileV3 = { version: SAVE_VERSION, state };
+  const saveFile: SaveFileV4 = { version: SAVE_VERSION, state };
   storage.setItem(STORAGE_KEY, JSON.stringify(saveFile));
 }
 

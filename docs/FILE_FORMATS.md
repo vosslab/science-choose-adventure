@@ -13,8 +13,46 @@ local-storage saves.
 - The flavor pool (`FLAVOR_POOL`) holds scientist-keyed cards injected only after an internal
   leader emerges; flavor prompts must not name or identify the scientist.
 - Per-scientist source notes live in `SCIENTIST_SOURCE_NOTES` in [src/content.ts](../src/content.ts).
+- The event deck (`EVENT_DECK`) in [src/content.ts](../src/content.ts) holds four extreme-gated
+  event cards (one per stat: `event_cash_1`, `event_curiosity_1`, `event_care_1`,
+  `event_credibility_1`). Each card's `probes` field names the stat that gates it; the scheduler
+  injects an eligible event card only while that stat exceeds `STAT_NORMAL_MAX`. All event prompts
+  pass the `LEAK_TERM_DENYLIST`.
 - [src/content_validation.ts](../src/content_validation.ts) is the executable source for the
   content completeness rules.
+
+### Conditional effects and branch links
+
+`Effect` in [src/content.ts](../src/content.ts) carries two optional fields for conditional
+behavior:
+
+- `whenStatAtLeast?: { stat: StatId; value: number }` -- satisfied when the named stat is at
+  or above the threshold in the pre-effect stats snapshot.
+- `then?: { direction?: EffectDirection; magnitude?: EffectMagnitude }` -- the alternate fields
+  swapped in when the condition holds; any omitted field falls back to the base. The target stat
+  never changes under any resolution.
+
+Resolution is order-independent: each effect is evaluated against the pre-effect stats snapshot
+(the original `stats` argument to `applyChoiceEffects`), so an earlier effect in the same choice
+can never change how a later condition evaluates.
+
+`Choice` in [src/content.ts](../src/content.ts) carries an optional `unlocks?: CardId` field.
+When the choice is picked, the engine enqueues that card id into `pendingCardIds` so the
+four-priority draw scheduler shows the follow-up card before the next weighted draw. The enqueue
+dedupes and skips already-asked ids, so a branch card never double-queues or replays.
+
+### Draw scheduler and cooldown
+
+The four-priority draw order in `drawNextCard` is:
+
+1. A pending branch card from `pendingCardIds` (deterministic, no RNG consumed).
+2. A seeded event card from `EVENT_DECK` only while some stat exceeds `STAT_NORMAL_MAX`.
+3. A leader flavor card on the `FLAVOR_EVERY` cadence.
+4. A weighted core draw excluding cards asked within `COOLDOWN_WINDOW = RUN_LENGTH` draws.
+
+With `COOLDOWN_WINDOW = RUN_LENGTH` the cooldown window spans the entire run, reproducing the
+prior "no repeated core card" behavior exactly. Lowering the window (or growing the deck past
+run length) allows older cards to return.
 
 ## Outcome model
 
@@ -83,10 +121,16 @@ Each entry in `SCIENTIST_IDS` has a hand-authored signature in `SCIENTIST_SIGNAT
 
 ```
 {
-  values: Record<StatId, number>,   // 0-100 target value per stat
-  rationale: Record<StatId, string> // one-line reason per stat (why high/medium/low)
+  values: Record<StatId, number>,    // 0-100 target value per stat
+  rationale: Record<StatId, string>, // one-line reason per stat (why high/medium/low)
+  weights?: Record<StatId, number>   // optional per-axis emphasis; defaults to uniform 1 via signatureWeights()
 }
 ```
+
+`weights` amplify each scientist's defining Cs in the resemblance metric (for example, the
+Purdue/Sackler entry is cash-dominant with a weight of 2.5; the He Jiankui entry is
+curiosity-dominant with a weight of 2.5). All 14 entries carry explicit weights. When
+`weights` is absent, `signatureWeights(id)` returns a uniform default of 1 for every `StatId`.
 
 `values` entries must be in [0, 100]. All 14 signatures (5 celebrated + 9 disgraced) must
 be pairwise distinct by at least `FLAVOR_MIN_MARGIN` (enforced by content validation). The
@@ -96,15 +140,17 @@ pool has credibility >= 75, so cross-pool collision is structurally impossible. 
 
 ## Save data
 
-- Browser save data is stored in `localStorage` under the key `science_career_survival:v3`.
+- Browser save data is stored in `localStorage` under the key `science_career_survival:v4`.
 - [src/storage.ts](../src/storage.ts) owns the versioned save-file boundary.
-- Old v1 and v2 saves are not read; unrecognized or missing saves start a fresh run.
+- Old v1, v2, and v3 saves are not read; unrecognized or missing saves start a fresh run.
+  No migration is performed: v3 and earlier are silently discarded. The tolerant garbage-blob
+  parse behavior is unchanged for malformed data.
 
 The save envelope is:
 
 ```
 {
-  version: 3,
+  version: 4,
   state: GameState
 }
 ```
@@ -119,7 +165,9 @@ The save envelope is:
   askedIds: readonly string[];
   lastEffectMagnitude: string | undefined;
   strain: readonly { stat: StatId; band: "low"; line: string }[];
-  unlockedExtras: readonly string[] }
+  unlockedExtras: readonly string[];
+  statHistory: readonly Record<StatId, number>[];
+  pendingCardIds: readonly string[] }
 |
 { phase: "result";
   stats: Record<StatId, number>;
@@ -132,23 +180,41 @@ The save envelope is:
   askedIds: readonly string[];
   lastEffectMagnitude: string | undefined;
   strain: readonly { stat: StatId; band: "low"; line: string }[];
-  unlockedExtras: readonly string[] }
+  unlockedExtras: readonly string[];
+  statHistory: readonly Record<StatId, number>[];
+  pendingCardIds: readonly string[];
+  blended?: boolean;
+  secondaryScientistId?: ScientistId;
+  trajectoryNote?: string }
 ```
 
 The `run` phase holds the live stat vector, a seeded RNG seed, the list of already-asked
-card IDs to avoid repeats, the current soft-tension texture lines (`strain`), and the set
-of unlocked extras (`unlockedExtras`). `lastEffectMagnitude` is `undefined` until the first
-choice is made, then a label string such as `"small"` or `"large"`.
+card IDs to avoid repeats, the current soft-tension texture lines (`strain`), the set of
+unlocked extras (`unlockedExtras`), the per-card stat history (`statHistory`), and the branch
+draw queue (`pendingCardIds`). `lastEffectMagnitude` is `undefined` until the first choice is
+made, then a label string such as `"small"` or `"large"`.
 
-The `result` phase carries all the same fields as `run` (stats, seed, answeredCount,
-askedIds, lastEffectMagnitude, strain, unlockedExtras) plus the matched scientist ID, the
-full resemblance ranking (used to render the ordered name list without raw distances), and
-the plain-language explanation string.
+`statHistory` follows the convention: index 0 is the initial 4C vector (before any card is
+answered) and each subsequent index i is the 4C snapshot taken right after the i-th card is
+answered. After `answeredCount` cards the array has `answeredCount + 1` entries. This is the
+persisted record the trajectory signal reads to derive peak timing and volatility so a mid-run
+reload reproduces the same `trajectoryNote`.
+
+`pendingCardIds` holds card ids that a choice has unlocked (via `Choice.unlocks`) but the run
+has not yet shown. The draw scheduler dequeues the first eligible pending id before the weighted
+draw. The field is initialized empty and deduped on enqueue.
+
+The `result` phase carries all the same fields as `run` plus: the matched scientist ID; the
+full resemblance ranking (used to render the ordered name list without raw distances); the
+plain-language explanation string; and three optional hybrid-result fields: `blended` (true
+when the top-two blended scores fell within the effective margin), `secondaryScientistId`
+(the runner-up when blended), and `trajectoryNote` (the digit-free peak-timing + volatility
+sentence). All three optional fields are absent for non-hybrid results and older storage shapes.
 
 `strain` entries each have a `stat` (one of the four `StatId` values), a `band` (`"low"`;
-high-band strain was removed in an earlier revision), and a `line` string (the texture sentence). The `unlockedExtras` array holds
-opaque token strings; the only token produced at present is `"{scientistId}:source_notes"`,
-added when the run transitions to the result phase.
+high-band strain was removed in an earlier revision), and a `line` string (the texture
+sentence). The `unlockedExtras` array holds opaque token strings; the only token produced at
+present is `"{scientistId}:source_notes"`, added when the run transitions to the result phase.
 
 - The game exposes Restart and Reset controls so a player or tester can start a new run or
   clear saved progress entirely.

@@ -363,6 +363,29 @@ a {
     0 18px 42px var(--glow);
 }
 
+/* Rare-event affordance: a card drawn from EVENT_DECK gets a faint accent border and a small
+   neutral "Rare event" label. This signals the card is special without naming or hinting at any
+   scientist identity (the run phase must never leak the hidden result). */
+.card[data-event="true"] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--paper));
+}
+
+.card[data-event="true"]::before {
+  content: "Rare event";
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  border-radius: 999px;
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--paper));
+}
+
 /* First card rocks on its own so players discover it shifts and is draggable. */
 @keyframes cardNudge {
   0%,
@@ -693,6 +716,17 @@ kbd {
   line-height: 1.3;
 }
 
+/* Trajectory note: short run-shape sentence (peak timing and volatility) shown under the
+   explanation. Smaller than the explanation and styled as a secondary annotation so it reads
+   as context rather than the primary result copy. */
+.trajectory-note {
+  margin: 0;
+  font-size: clamp(0.9rem, 3.2vw, 1.1rem);
+  line-height: 1.35;
+  font-style: italic;
+  color: color-mix(in srgb, var(--ink) 72%, var(--paper));
+}
+
 .rationale {
   display: grid;
   gap: 6px;
@@ -760,6 +794,13 @@ kbd {
   background: color-mix(in srgb, var(--accent) 14%, var(--paper));
 }
 
+/* Blend partner in a hybrid result: uses an ink-tinted border and background so it reads as
+   notable but secondary to the primary match (which uses the theme accent). */
+.ranking__item--secondary {
+  border-color: color-mix(in srgb, var(--ink) 42%, transparent);
+  background: color-mix(in srgb, var(--ink) 7%, var(--paper));
+}
+
 .ranking__name {
   font-weight: 700;
 }
@@ -770,6 +811,20 @@ kbd {
   border-radius: 999px;
   background: var(--accent);
   color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tag for the blend partner in a hybrid result: same pill shape as match-tag but uses the
+   ink color so it visually pairs with .ranking__item--secondary rather than the accent. */
+.ranking__secondary-tag {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  color: var(--paper);
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;

@@ -2,6 +2,17 @@
 
 How to run the tools in this repository.
 
+## Playing the game
+
+Build and serve the browser game locally, then open the printed URL:
+
+```bash
+./run_web_server.sh
+```
+
+For the intended layout, play on a desktop browser window roughly 16:9 to 16:10
+in aspect ratio, or a phone held vertically at about 10:16.
+
 ## reset_repo.py
 
 `reset_repo.py` is the bootstrap entry point for a new consumer repo cloned from this

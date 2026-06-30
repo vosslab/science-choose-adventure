@@ -19,15 +19,25 @@ local-storage persistence all live under [src/](../src/).
   of disguised scientist-keyed cards, and `SCIENTIST_SOURCE_NOTES` for end-reveal unlocks.
 - [src/content_validation.ts](../src/content_validation.ts): content completeness checks
   including core-deck floor, probed-stat coverage, flavor coverage, signature distinctness,
-  and the `LEAK_TERM_DENYLIST` that keeps scientist identities out of run-phase cards.
+  the `LEAK_TERM_DENYLIST` that keeps scientist identities out of run-phase cards, branch-target
+  existence (every `Choice.unlocks` id resolves to a real card), and event-deck probe and
+  leak-term rules.
+- [src/selection.ts](../src/selection.ts): resemblance metric; `signatureDistance` computes a
+  blended score combining per-axis z-score normalization (population mean and stddev of the
+  active pool), per-scientist axis weights from `signatureWeights()`, and a cosine-similarity
+  term (`COSINE_BLEND_WEIGHT = 0.25`); `rankSignatures` sorts one pool by ascending blended
+  score with `SCIENTIST_IDS` tie-break; `celebratedIds()` and `disgracedIds()` pool helpers.
+  Re-exported from `src/engine.ts` for backward compatibility.
 - [src/engine.ts](../src/engine.ts): pure game-state transitions for the blind run and result
-  phase; seeded RNG (mulberry32); weighted draw with `FLAVOR_POOL` injection; `rankSignatures`
-  (Euclidean distance over the matched pool -- five celebrated or nine disgraced
-  `SCIENTIST_SIGNATURE` vectors); `matchExplanation` / `downfallExplanation` (plain-language
-  rationale from most decisive stats); a stat floor at 0 with no upper cap; and `toResultState`
-  downfall routing when credibility drops to `DISGRACE_FLOOR` or any stat exceeds
-  `STAT_NORMAL_MAX`.
-- [src/storage.ts](../src/storage.ts): v3 versioned local-storage load, save, and reset helpers.
+  phase; seeded RNG (mulberry32); four-priority draw scheduler (`drawNextCard`: pending branch
+  queue, extreme-gated event cards, flavor injection, weighted core draw with cooldown);
+  conditional-effect resolver (`resolveEffect`); `matchExplanation` / `downfallExplanation`
+  (plain-language rationale from most decisive stats); trajectory signal from `statHistory`
+  (peak timing and volatility); margin-hybrid result (`blended`, `secondaryScientistId`,
+  `trajectoryNote`); a stat floor at 0 with no upper cap; and `toResultState` downfall routing
+  when credibility drops to `DISGRACE_FLOOR` or any stat exceeds `STAT_NORMAL_MAX`. Re-exports
+  `rankSignatures` and `signatureDistance` from `src/selection.ts`.
+- [src/storage.ts](../src/storage.ts): v4 versioned local-storage load, save, and reset helpers.
 - [src/input_controller.ts](../src/input_controller.ts): swipe, keyboard, and button input wiring.
 - [src/ui_renderer.ts](../src/ui_renderer.ts): DOM rendering for the blind run phase (cards,
   stats, strain texture) and the result reveal screen (match headline, explanation, per-C
@@ -41,13 +51,17 @@ local-storage persistence all live under [src/](../src/).
   the result reveal screen once all `RUN_LENGTH` questions are answered.
 - [src/input_controller.ts](../src/input_controller.ts) maps swipe and keyboard input to the same
   choice handlers used by the rendered buttons.
-- [src/engine.ts](../src/engine.ts) applies the chosen option, updates four-C stats (floored at
-  0, no upper cap), advances the draw sequence (injecting a flavor card when the internal leader
-  clears `FLAVOR_MIN_MARGIN`), and returns the next immutable state shape. When the run is
-  complete, `toResultState` picks the celebrated or disgraced pool (downfall on a credibility
-  collapse or any extreme stat), `rankSignatures` compares the final stat profile to that pool's
-  `SCIENTIST_SIGNATURE` vectors, and `matchExplanation` / `downfallExplanation` builds the
-  plain-language result.
+- [src/engine.ts](../src/engine.ts) applies the chosen option (resolving any conditional effects
+  against the pre-effect stats snapshot, then enqueuing `Choice.unlocks` into `pendingCardIds`
+  when present), updates four-C stats (floored at 0, no upper cap), appends a 4C snapshot to
+  `statHistory`, and advances the draw sequence through the four-priority scheduler (pending
+  branch card, extreme-gated event card, flavor injection, weighted core draw with cooldown).
+  When the run is complete, `toResultState` picks the celebrated or disgraced pool (downfall on
+  credibility collapse or any extreme stat), `rankSignatures` in `src/selection.ts` ranks the
+  pool by blended normalized + weighted + cosine distance, the trajectory signal reads
+  `statHistory` to produce a `trajectoryNote` and margin shift, the hybrid decision compares the
+  top-two scores against the effective margin, and `matchExplanation` / `downfallExplanation`
+  builds the plain-language result.
 - [src/storage.ts](../src/storage.ts) persists the current state in browser `localStorage`.
 
 ## Testing and verification
@@ -57,8 +71,10 @@ local-storage persistence all live under [src/](../src/).
 - [tests/test_content_contracts.mjs](../tests/test_content_contracts.mjs) checks core-deck floor,
   probed-stat coverage, flavor coverage, signature distinctness, and the leak-term denylist.
 - [tests/test_engine_flow.mjs](../tests/test_engine_flow.mjs) checks seeded run completion,
-  byte-stable determinism, stat clamping, divergence, and absence of `Math.random` in
-  [src/engine.ts](../src/engine.ts).
+  byte-stable determinism, stat clamping, divergence, absence of `Math.random` in
+  [src/engine.ts](../src/engine.ts), and advanced-selection + variable-choices features:
+  normalized/weighted ranking, hybrid result fields, trajectory note, conditional effects,
+  branch follow-up card, and event-card gating.
 - [tests/playwright/game_smoke.spec.ts](../tests/playwright/game_smoke.spec.ts) builds a local
   browser smoke over `dist/` and covers the blind run loop, absence of scientist names mid-run,
   and the result reveal screen after the final answer.

@@ -7,7 +7,7 @@ import {
   type ScientistId,
   type StatId,
 } from "./config";
-import { CORE_DECK, FLAVOR_POOL, type CareerCard } from "./content";
+import { CORE_DECK, EVENT_DECK, FLAVOR_POOL, type CareerCard } from "./content";
 
 export type ValidationIssue = {
   readonly code: string;
@@ -86,12 +86,20 @@ function euclideanDistance(a: Record<StatId, number>, b: Record<StatId, number>)
   return Math.sqrt(sumSq);
 }
 
-// All cards in play: core deck plus every scientist's flavor cards. Computed
-// once at module load and reused by all checks that iterate the full card set.
+// All cards in play: core deck, event deck, and every scientist's flavor cards.
+// Computed once at module load and reused by all checks that iterate the full card set.
+// EVENT_DECK is included so probe-subset (check c) and leak-term (check g) rules cover
+// event cards as well as core and flavor cards.
 const ALL_CARDS: readonly CareerCard[] = [
   ...CORE_DECK,
+  ...EVENT_DECK,
   ...Object.values(FLAVOR_POOL).flatMap((cards) => [...cards]),
 ];
+
+// All cards that can be named as a branch target (core + event). Matches the engine's
+// findCardById search scope -- flavor cards are injected per-scientist and are not
+// addressable as branch targets.
+const ALL_BRANCH_TARGET_CARDS: readonly CareerCard[] = [...CORE_DECK, ...EVENT_DECK];
 
 // Check a: CORE_DECK must have at least CORE_DECK_FLOOR cards.
 function checkCoreDeckSize(issues: ValidationIssue[]): void {
@@ -250,6 +258,63 @@ function checkLeakTerms(issues: ValidationIssue[]): void {
   }
 }
 
+// Check h: every Choice.unlocks value across CORE_DECK and EVENT_DECK must resolve to a
+// real card id in either deck. Mirrors the engine's findCardById search scope (both decks,
+// never flavor). Emits "branch_target_missing" when a branch points at a nonexistent card.
+// The branch-target cards are passed in (validateContent supplies ALL_BRANCH_TARGET_CARDS)
+// so tests can inject a crafted bad fixture. The set of known ids is derived from the same
+// cards, so an unlocks value resolves only against the supplied deck scope.
+export function checkBranchTargets(
+  issues: ValidationIssue[],
+  branchTargetCards: readonly CareerCard[],
+): void {
+  const knownIds = new Set(branchTargetCards.map((c) => c.id as string));
+  for (const card of branchTargetCards) {
+    for (const ch of card.choices) {
+      if (ch.unlocks !== undefined) {
+        const targetId = ch.unlocks as string;
+        if (!knownIds.has(targetId)) {
+          issues.push(
+            issue(
+              "branch_target_missing",
+              `Card "${card.id}" has a choice that unlocks "${targetId}", which is not a known CORE_DECK or EVENT_DECK card id.`,
+            ),
+          );
+        }
+      }
+    }
+  }
+}
+
+// Check i: EVENT_DECK structural integrity.
+//   i-1: EVENT_DECK must be non-empty (at least one event card is required for the
+//        extreme-eligibility gate to ever fire).
+//   i-2: every event card must carry at least one probe (the engine uses probes to decide
+//        eligibility -- a card with no probes is never eligible and is effectively dead).
+// Codes: "event_deck_empty", "event_no_probes".
+// The event deck is passed in (validateContent supplies EVENT_DECK) so tests can inject a
+// crafted bad fixture (an empty deck, or a card with an empty probes array).
+export function checkEventCoverage(
+  issues: ValidationIssue[],
+  eventDeck: readonly CareerCard[],
+): void {
+  if (eventDeck.length === 0) {
+    issues.push(issue("event_deck_empty", "EVENT_DECK is empty; no event can ever fire."));
+    // Cannot check per-card probes when the deck is empty.
+    return;
+  }
+  for (const card of eventDeck) {
+    if (card.probes.length === 0) {
+      issues.push(
+        issue(
+          "event_no_probes",
+          `Event card "${card.id}" has an empty probes array; it can never be made eligible by the engine.`,
+        ),
+      );
+    }
+  }
+}
+
 export function validateContent(): readonly ValidationIssue[] {
   const issues: ValidationIssue[] = [];
 
@@ -260,6 +325,8 @@ export function validateContent(): readonly ValidationIssue[] {
   checkFlavorPoolCoverage(issues);
   checkSignatures(issues);
   checkLeakTerms(issues);
+  checkBranchTargets(issues, ALL_BRANCH_TARGET_CARDS);
+  checkEventCoverage(issues, EVENT_DECK);
 
   return issues;
 }

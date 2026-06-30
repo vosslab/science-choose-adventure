@@ -4,13 +4,8 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 
-import {
-  RUN_LENGTH,
-  SCIENTIST_CONFIG,
-  SCIENTIST_IDS,
-  STAT_IDS,
-  STAT_STEP_COUNT,
-} from "../../src/config";
+import { RUN_LENGTH, SCIENTIST_CONFIG, STAT_IDS, STAT_STEP_COUNT } from "../../src/config";
+import { celebratedIds, disgracedIds } from "../../src/selection";
 
 type StaticAsset = {
   readonly fileName: string;
@@ -84,7 +79,8 @@ async function startDistServer(
   return { url, close };
 }
 
-// Assert that the current DOM text contains none of the five scientist full names.
+// Assert that the current DOM text contains none of the scientist full names across
+// both the celebrated and disgraced pools.
 // This is the core "blind run" invariant: no name may leak before the result screen.
 async function assertNoScientistNameVisible(page: import("@playwright/test").Page): Promise<void> {
   const bodyText = await page.locator("body").innerText();
@@ -159,13 +155,20 @@ test("blind run loop: no name during run, reveal after final answer, restart ret
       timeout: 5000,
     });
 
-    // The result headline must contain "You most resemble" and one of the scientist names.
+    // The result headline must match one of the four valid reveal forms and contain a scientist name.
+    // Four valid headline shapes (src/engine.ts toResultState):
+    //   Celebrated single:  "You most resemble {Name}."
+    //   Celebrated blended: "You land between {Name} and {Name}."
+    //   Disgraced single:   "Your choices echo the {Name} case."
+    //   Disgraced blended:  "Your choices echo both the {Name} and {Name} cases."
     const headlineEl = page.locator("h2.result-headline__title");
     await expect(headlineEl).toBeVisible();
     const headlineText = await headlineEl.innerText();
-    if (!headlineText.includes("You most resemble")) {
+    const validHeadlinePattern =
+      /^(You most resemble |You land between |Your choices echo the |Your choices echo both the )/;
+    if (!validHeadlinePattern.test(headlineText)) {
       throw new Error(
-        `Result headline does not contain "You most resemble". Got: "${headlineText}"`,
+        `Result headline does not match any valid reveal form. Got: "${headlineText}"`,
       );
     }
     const matchedName = SCIENTIST_NAMES.find((name) => headlineText.includes(name));
@@ -175,9 +178,14 @@ test("blind run loop: no name during run, reveal after final answer, restart ret
       );
     }
 
-    // Ranking list must contain one item per scientist, with the first marked as the match.
+    // Ranking list shows only the matched pool, not all scientists. Derive the expected
+    // count from the headline tone: "Your choices echo" => disgraced pool; otherwise
+    // => celebrated pool. This stays roster-change-proof because it reads the same
+    // exported arrays the engine uses.
+    const isDisgracedRun = headlineText.startsWith("Your choices echo");
+    const expectedPoolSize = isDisgracedRun ? disgracedIds().length : celebratedIds().length;
     const rankingItems = page.locator("ol.ranking__list li.ranking__item");
-    await expect(rankingItems).toHaveCount(SCIENTIST_IDS.length);
+    await expect(rankingItems).toHaveCount(expectedPoolSize);
     await expect(rankingItems.first()).toHaveClass(/ranking__item--match/);
 
     // Every ranking item should contain a scientist name (names only, no raw distances).

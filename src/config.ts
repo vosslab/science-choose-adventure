@@ -383,7 +383,11 @@ export const DRAW_WEIGHT_BASE = 1;
 // written inline as Record<StatId, number> here.
 export const SCIENTIST_SIGNATURE: Record<
   ScientistId,
-  { values: Record<StatId, number>; rationale: Record<StatId, string> }
+  {
+    values: Record<StatId, number>;
+    rationale: Record<StatId, string>;
+    weights?: Record<StatId, number>;
+  }
 > = {
   jennifer_doudna: {
     values: { credibility: 75, curiosity: 80, cash: 70, care: 55 },
@@ -395,6 +399,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "High: translation, startups, and patents pulled real resources around the tool.",
       care: "Medium: called for guardrails on the technology, but discovery kept setting the pace.",
     },
+    // Curiosity is the defining C: she chased a weird bacterial defence system that nobody
+    // thought would become a precision editing tool. Credibility and cash are both high and
+    // contribute meaningfully; care is the least distinctive axis for this match.
+    weights: { credibility: 1.5, curiosity: 2.0, cash: 1.5, care: 1.0 },
   },
   rosalind_franklin: {
     values: { credibility: 80, curiosity: 65, cash: 25, care: 75 },
@@ -406,6 +414,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: worked in friction-filled institutions with thin support and contested credit.",
       care: "High: insisted on fair credit terms and standards even when the room called it stubbornness.",
     },
+    // Credibility is the defining C: precision and refusal to publish ahead of evidence are
+    // the hallmark of her career. Care is co-defining (insisting on fair credit). Cash was
+    // persistently scarce and least relevant to her scientific identity.
+    weights: { credibility: 2.0, curiosity: 1.0, cash: 0.5, care: 1.5 },
   },
   marie_curie: {
     values: { credibility: 75, curiosity: 90, cash: 30, care: 35 },
@@ -416,6 +428,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: did landmark work in a converted shed with scarce resources.",
       care: "Low: pushed through dangerous conditions and personal cost for the discovery.",
     },
+    // Curiosity is the clear defining C at 90: she chased a mysterious glow nobody else
+    // bothered to measure. Cash and care were both persistently low and secondary to
+    // the match; credibility is high but curiosity is what distinguishes her.
+    weights: { credibility: 1.0, curiosity: 2.5, cash: 0.5, care: 0.5 },
   },
   alexander_fleming: {
     values: { credibility: 55, curiosity: 68, cash: 45, care: 70 },
@@ -427,6 +443,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low-medium: early development stayed small until larger efforts took over.",
       care: "High: the payoff was a treatment for people, and the work centered that promise.",
     },
+    // Care is the defining C: the through-line was a treatment for people, not personal
+    // ambition or large funding. Curiosity is the secondary axis (the famous plate observation);
+    // cash is least distinctive since development depended on others.
+    weights: { credibility: 1.0, curiosity: 1.5, cash: 0.75, care: 2.0 },
   },
   katalin_kariko: {
     values: { credibility: 40, curiosity: 80, cash: 30, care: 80 },
@@ -438,6 +458,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: grant after grant said no, so the work ran on persistence, not funding.",
       care: "High: the through-line was a therapy meant to protect people, pursued for decades.",
     },
+    // Curiosity and care are co-defining at 80 each: stubborn pursuit of an unpopular molecule
+    // for a therapy that would protect people. Credibility was initially low (rejected repeatedly)
+    // and cash was chronically scarce, so both carry reduced weight.
+    weights: { credibility: 0.75, curiosity: 2.0, cash: 0.5, care: 2.0 },
   },
   // Disgraced-pool signatures. Values are pairwise distinct by >= FLAVOR_MIN_MARGIN;
   // minimum pair is gary_strobel vs haruko_obokata at ~22.6. Rationales are grounded
@@ -452,6 +476,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "High: received undisclosed payments from a law firm seeking to sue vaccine manufacturers.",
       care: "Very low: the false alarm depressed vaccination rates and damaged public health for years.",
     },
+    // Cash is the defining C at 80: undisclosed financial arrangement with a lawsuit firm
+    // drove the fraud. Credibility and care are both extremely low and reinforce the match;
+    // curiosity was narrow and secondary.
+    weights: { credibility: 0.5, curiosity: 0.75, cash: 2.5, care: 0.5 },
   },
   hwang_woosuk: {
     values: { credibility: 15, curiosity: 85, cash: 60, care: 30 },
@@ -463,6 +491,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Medium-high: South Korea directed major national prestige funding to the project before the fraud emerged.",
       care: "Low: pressured junior staff to donate eggs and bypassed normal ethical review to accelerate results.",
     },
+    // Curiosity is the defining C at 85: drove an aggressive race to be first at the human
+    // cloning frontier. Credibility collapsed entirely; cash was substantial; care was
+    // secondary and outweighed by competitive drive.
+    weights: { credibility: 0.5, curiosity: 2.5, cash: 1.0, care: 0.75 },
   },
   he_jiankui: {
     values: { credibility: 25, curiosity: 95, cash: 50, care: 5 },
@@ -474,6 +506,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Medium: privately funded outside the normal grant process, which helped conceal the work from oversight.",
       care: "Very low: proceeded without genuine informed consent and ignored scientific consensus that the field was not ready.",
     },
+    // Curiosity is overwhelmingly dominant at 95: pure race-to-be-first drive with no
+    // safety guardrails. Care is the lowest value in the entire dataset at 5 and is a
+    // critical axis for the match; cash is moderate and secondary.
+    weights: { credibility: 0.75, curiosity: 2.5, cash: 1.0, care: 0.5 },
   },
   gary_strobel: {
     values: { credibility: 40, curiosity: 80, cash: 20, care: 40 },
@@ -485,6 +521,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: field campaigns on a modest academic budget with no commercial backing.",
       care: "Low-medium: released an engineered Fusarium strain in a UK field site without obtaining the required permits.",
     },
+    // Curiosity is the defining C at 80: wide-ranging multi-continent hunt for bioactive microbes.
+    // Cash was persistently low (modest academic budget) and is the least relevant axis;
+    // credibility and care are similar and middling -- curiosity separates this signature.
+    weights: { credibility: 1.0, curiosity: 2.0, cash: 0.5, care: 1.0 },
   },
   purdue_sackler: {
     values: { credibility: 45, curiosity: 20, cash: 95, care: 5 },
@@ -496,6 +536,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Very high: OxyContin generated billions while aggressive promotion systematically minimized addiction risk.",
       care: "Very low: evidence of patient harm was suppressed to protect revenue; the human cost ran to hundreds of thousands.",
     },
+    // Cash is overwhelmingly dominant at 95: the entire enterprise was revenue extraction.
+    // Care at 5 is co-defining (suppressed harm for profit); curiosity was the lowest C and
+    // irrelevant to a pharmaceutical marketing operation.
+    weights: { credibility: 0.75, curiosity: 0.5, cash: 2.5, care: 0.5 },
   },
   jan_hendrik_schon: {
     values: { credibility: 20, curiosity: 70, cash: 35, care: 20 },
@@ -507,6 +551,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low-medium: worked within a prestigious industrial research lab but without independent grant funding.",
       care: "Very low: deceived co-authors who lent their names to fabricated results and seeded the field with false leads.",
     },
+    // Curiosity is the defining C at 70: chose the most exciting frontier topics to fabricate
+    // into. Credibility and care are both very low and reinforce the match; cash is secondary
+    // (prestige-lab access without independent funding).
+    weights: { credibility: 0.5, curiosity: 2.0, cash: 1.0, care: 0.5 },
   },
   diederik_stapel: {
     values: { credibility: 12, curiosity: 45, cash: 30, care: 25 },
@@ -518,6 +566,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: supported by standard Dutch academic grants; the misconduct was driven by prestige rather than financial gain.",
       care: "Low: betrayed PhD students who built dissertations on data they were never told was fabricated.",
     },
+    // Curiosity is the defining C at 45 (the highest, though all values are low): the drive
+    // for impressive narratives replaced real inquiry. Credibility is the most extreme low at 12;
+    // cash and care are secondary -- prestige, not money, was the motive.
+    weights: { credibility: 0.5, curiosity: 2.0, cash: 0.75, care: 0.75 },
   },
   paolo_macchiarini: {
     values: { credibility: 30, curiosity: 75, cash: 75, care: 5 },
@@ -529,6 +581,10 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "High: attracted major institutional investment and international press attention to the experimental procedures.",
       care: "Very low: continued operating on patients despite mounting evidence of failure; most recipients did not survive.",
     },
+    // Curiosity and cash are co-defining at 75 each: speculative frontier surgery that attracted
+    // major institutional investment. Care at 5 is the critical distinguishing low axis; credibility
+    // is also low but secondary to the cash/curiosity combination.
+    weights: { credibility: 0.75, curiosity: 1.75, cash: 1.75, care: 0.5 },
   },
   haruko_obokata: {
     values: { credibility: 18, curiosity: 80, cash: 25, care: 40 },
@@ -540,8 +596,25 @@ export const SCIENTIST_SIGNATURE: Record<
       cash: "Low: an early-career researcher working within a large institute on standard laboratory resources.",
       care: "Low-medium: the retraction damaged collaborators' careers and shook public trust in the stem-cell research community.",
     },
+    // Curiosity is the defining C at 80: a striking but ultimately fabricated biological
+    // shortcut claim. Credibility at 18 is very low and important for the match; cash was
+    // persistently low (standard institute resources) and is least distinctive.
+    weights: { credibility: 0.5, curiosity: 2.5, cash: 0.75, care: 1.0 },
   },
 };
+
+// Return the per-scientist axis weights if hand-authored, or a uniform default of 1 for
+// every StatId. The default is built from STAT_IDS so it stays in sync if stats ever
+// change. Every scientist currently carries hand-authored non-uniform weights, so the
+// uniform fallback only applies to any future signature added without a weights field.
+export function signatureWeights(id: ScientistId): Record<StatId, number> {
+  const entry = SCIENTIST_SIGNATURE[id];
+  if (entry.weights !== undefined) {
+    return entry.weights;
+  }
+  // Build uniform-weight map from the canonical STAT_IDS tuple.
+  return Object.fromEntries(STAT_IDS.map((s) => [s, 1])) as Record<StatId, number>;
+}
 
 // Credibility at or below this floor routes a run to the disgraced pool and the
 // downfall branch instead of the celebrated resemblance reveal.

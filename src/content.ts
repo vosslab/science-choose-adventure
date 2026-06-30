@@ -6,15 +6,46 @@ import {
   type StatId,
 } from "./config";
 
+// A condition tested against the player's current (pre-effect) stats. The condition is
+// satisfied when the named stat is at least `value`. Kept deliberately minimal: a single
+// at-least threshold on one stat, not a general expression engine.
+export type EffectCondition = {
+  readonly stat: StatId;
+  readonly value: number;
+};
+
+// The alternate direction and/or magnitude swapped in when an effect's condition is satisfied.
+// Each field is optional: an omitted field falls back to the effect's base value, so a swap can
+// change only the direction, only the magnitude, or both. The affected `stat` never changes.
+export type EffectSwap = {
+  readonly direction?: EffectDirection;
+  readonly magnitude?: EffectMagnitude;
+};
+
+// One card effect on a single stat. The base direction/magnitude always apply unless an optional
+// condition is present and satisfied by the pre-effect stats, in which case the engine swaps in
+// the alternate from `then`. Because `then` can change only direction/magnitude (never the target
+// stat) and every magnitude is a nonzero delta, the affected stat moves under every resolution.
+// This keeps the probe-subset rule (every probed stat is affected by at least one choice) decidable
+// from the static `stat` fields alone, independent of any condition.
 export type Effect = {
   readonly stat: StatId;
   readonly direction: EffectDirection;
   readonly magnitude: EffectMagnitude;
+  readonly whenStatAtLeast?: EffectCondition;
+  readonly then?: EffectSwap;
 };
 
 export type Choice = {
   readonly label: string;
   readonly effects: readonly Effect[];
+  // When this choice is picked, the engine enqueues this card id into the run's pending draw
+  // queue (pendingCardIds), so the scheduler shows that follow-up card before the next normal
+  // weighted draw. Optional: most choices unlock nothing. The target must be a real CORE_DECK
+  // or EVENT_DECK card id (branch-target existence is checked by content validation). The
+  // enqueue dedupes and skips ids already asked, so a branch never double-queues or replays a
+  // card the run has already shown.
+  readonly unlocks?: CardId;
 };
 
 export type CareerCard = {
@@ -36,8 +67,27 @@ function effect(stat: StatId, direction: EffectDirection, magnitude: EffectMagni
   return nextEffect;
 }
 
-function choice(label: string, effects: readonly Effect[]): Choice {
-  const nextChoice = { label, effects };
+// Sibling of effect() for authoring a conditional effect ergonomically. The base
+// direction/magnitude apply normally; when `whenStatAtLeast` is satisfied by the pre-effect
+// stats, the engine swaps in the alternate fields from `then`. Exported so card authors
+// can build conditional effects from outside this module.
+export function conditionalEffect(
+  stat: StatId,
+  direction: EffectDirection,
+  magnitude: EffectMagnitude,
+  whenStatAtLeast: EffectCondition,
+  then: EffectSwap,
+): Effect {
+  const nextEffect = { stat, direction, magnitude, whenStatAtLeast, then };
+  return nextEffect;
+}
+
+// Build one Choice. The optional third argument enqueues a follow-up card id (the branch
+// link) when the choice is picked; omit it for the common case of a choice that unlocks
+// nothing. Consumers check `unlocks !== undefined`, so an absent or undefined unlocks behave
+// identically and a single construction path covers both.
+function choice(label: string, effects: readonly Effect[], unlocks?: CardId): Choice {
+  const nextChoice = { label, effects, unlocks };
   return nextChoice;
 }
 
@@ -338,6 +388,213 @@ export const CORE_DECK: readonly CareerCard[] = [
       effect("credibility", "down", "large"),
     ]),
     ["credibility", "care"],
+  ),
+  coreCard(
+    22,
+    "A long-delayed paper returns from review with conflicting referee comments.",
+    // Choice A treats the critique as fuel for new experiments (curiosity path).
+    // Choice B writes exhaustive responses to each concern (credibility path).
+    choice("Use the reviewer feedback as fuel for new experiments", [
+      effect("curiosity", "up", "medium"),
+      effect("credibility", "down", "small"),
+    ]),
+    choice("Write careful responses to address every concern", [
+      effect("credibility", "up", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    ["credibility", "curiosity"],
+  ),
+  coreCard(
+    23,
+    "A prestigious journal asks you to restrict dataset access after publication.",
+    choice("Refuse and keep the data openly accessible", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Accept their terms to secure the venue", [
+      effect("cash", "up", "medium"),
+      effect("credibility", "down", "small"),
+    ]),
+    ["credibility", "cash"],
+  ),
+  coreCard(
+    24,
+    "A promising student needs your strongest letter for a fiercely competitive fellowship.",
+    choice("Write an honest, thorough recommendation", [
+      effect("care", "up", "small"),
+      effect("credibility", "up", "small"),
+    ]),
+    choice("Inflate their record to improve their odds", [
+      effect("credibility", "down", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    ["care", "credibility"],
+  ),
+  coreCard(
+    25,
+    "After a long drought in funding, your lab lands two major grants at once.",
+    choice("Hire aggressively to use the full windfall", [
+      // When cash is at or above the starting value the new hires get real support;
+      // below that baseline only a small care boost is possible while money is still tight.
+      conditionalEffect(
+        "care",
+        "up",
+        "small",
+        { stat: "cash", value: 50 },
+        { magnitude: "medium" },
+      ),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Build reserves before committing to new staff", [
+      effect("cash", "up", "small"),
+      effect("care", "down", "small"),
+    ]),
+    ["cash", "care"],
+  ),
+  coreCard(
+    26,
+    "A keynote invitation arrives during the most critical phase of your main experiment.",
+    choice("Accept and give the talk", [
+      effect("care", "up", "medium"),
+      effect("credibility", "up", "small"),
+    ]),
+    choice("Decline and stay focused on the experiment", [
+      effect("credibility", "up", "medium"),
+      effect("care", "down", "small"),
+    ]),
+    ["credibility", "care"],
+  ),
+  coreCard(
+    27,
+    "A lab safety audit reveals several protocols have quietly drifted out of compliance.",
+    // Picking the thorough overhaul unlocks a follow-up card about the ripple effects.
+    choice(
+      "Overhaul every issue and retrain the whole team",
+      [effect("care", "up", "medium"), effect("cash", "down", "medium")],
+      cardId("core_28"),
+    ),
+    choice("Fix only the critical points to keep moving", [
+      effect("care", "up", "small"),
+      effect("cash", "down", "small"),
+    ]),
+    ["care", "cash"],
+  ),
+  coreCard(
+    28,
+    "Word of your safety overhaul spreads and a partner lab wants to adopt your approach.",
+    // This card is the branch follow-up to core_27 choice A. Probes credibility and cash
+    // (not care) so the unlock chain does not double-stack care boosts when core_27 and
+    // core_28 both appear in the same run -- knowledge-sharing rewards credibility instead.
+    choice("Document the methods and share them openly", [
+      effect("credibility", "up", "medium"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Offer a paid consultation instead", [
+      effect("cash", "up", "small"),
+      effect("credibility", "up", "small"),
+    ]),
+    ["credibility", "cash"],
+  ),
+];
+
+//============================================
+// Extreme-gated event deck
+//============================================
+
+// Rare event cards the draw scheduler injects only while the player sits in the extreme band
+// (some stat value strictly above STAT_NORMAL_MAX).
+//
+// Eligibility contract: an event card is eligible on a given turn iff at least one of its
+// `probes` stats is currently extreme (value > STAT_NORMAL_MAX). So `probes` does double duty
+// here -- it both names the stat the card is about AND gates which stat-extreme unlocks the card.
+// An event card themed on runaway cash carries probes: ["cash"] and only appears once cash
+// crosses the extreme threshold; a curiosity-extreme card carries probes: ["curiosity"]; and so
+// on. Each event card is asked at most once per run (the scheduler excludes already-asked cards),
+// so an event fires a single time while extreme.
+//
+// Event cards are full CareerCards: every probed stat must be affected by at least one choice,
+// and prompts must avoid the leak-term denylist.
+function eventCard(
+  id: string,
+  prompt: string,
+  first: Choice,
+  second: Choice,
+  probes: readonly StatId[],
+): CareerCard {
+  const nextCard: CareerCard = {
+    id: cardId(id),
+    prompt,
+    choices: [first, second],
+    probes,
+  };
+  return nextCard;
+}
+
+export const EVENT_DECK: readonly CareerCard[] = [
+  // Cash-extreme event: appears when cash > STAT_NORMAL_MAX.
+  // The conditional in choice A fires every time this card is drawn (cash is already > 100),
+  // so the "up large" path always activates -- a natural representation of compounding returns
+  // when a lab is already flush far beyond the normal ceiling.
+  eventCard(
+    "event_cash_1",
+    "A wave of capital has made your lab the center of an expanding commercial ecosystem.",
+    choice("Keep expanding to capture more market share", [
+      conditionalEffect(
+        "cash",
+        "up",
+        "medium",
+        { stat: "cash", value: 100 },
+        { magnitude: "large" },
+      ),
+      effect("credibility", "down", "small"),
+    ]),
+    choice("Redirect the surplus toward independent research", [
+      effect("cash", "down", "small"),
+      effect("curiosity", "up", "medium"),
+    ]),
+    ["cash"],
+  ),
+  // Curiosity-extreme event: appears when curiosity > STAT_NORMAL_MAX.
+  eventCard(
+    "event_curiosity_1",
+    "Your stream of surprising results is running well ahead of the field's ability to keep up.",
+    choice("Keep publishing at full speed", [
+      effect("curiosity", "up", "medium"),
+      effect("credibility", "down", "medium"),
+    ]),
+    choice("Pause and write a careful synthesis for the field", [
+      effect("credibility", "up", "medium"),
+      effect("curiosity", "down", "small"),
+    ]),
+    ["curiosity"],
+  ),
+  // Care-extreme event: appears when care > STAT_NORMAL_MAX.
+  eventCard(
+    "event_care_1",
+    "Your reputation for protecting participants has drawn applicants from vulnerable communities.",
+    choice("Expand the study to welcome as many as possible", [
+      effect("care", "up", "medium"),
+      effect("cash", "down", "medium"),
+    ]),
+    choice("Maintain strict enrollment to preserve study quality", [
+      effect("care", "down", "small"),
+      effect("credibility", "up", "small"),
+    ]),
+    ["care"],
+  ),
+  // Credibility-extreme event: appears when credibility > STAT_NORMAL_MAX.
+  eventCard(
+    "event_credibility_1",
+    "Your flawless track record has regulators proposing to approve your next study without a full review.",
+    choice("Request the full review regardless", [
+      effect("credibility", "up", "small"),
+      effect("cash", "down", "small"),
+    ]),
+    choice("Accept the expedited path to move faster", [
+      effect("cash", "up", "medium"),
+      effect("credibility", "down", "large"),
+    ]),
+    ["credibility"],
   ),
 ];
 
